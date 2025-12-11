@@ -1,0 +1,20 @@
+_inner(tmp′::AbstractTensorMap,tmp::AbstractTensorMap) = @tensor tmp′[1,2,3,4,5,6,7,8] * tmp'[6,7,8,1,2,3,4,5]
+function _inner(Γ₁::AbstractTensorMap, O::AbstractTensorMap, Γ₂::AbstractTensorMap)
+    return @tensor tmp[-1] ≔ Γ₁[1,2,3,5,6] * O[4,-1,3] * Γ₂'[5,6,1,2,4]
+end
+function λs(ψ::Dict,Latt::AbstractLattice,i::Int64)
+    Lx,Ly = size(Latt)
+    ind = Latt[i][2] + [1,1]
+    indu = ind[1], mod(ind[2] - 1 + Ly - 1, Ly) + 1
+    indl = mod(ind[1] - 1 + Lx - 1, Lx) + 1, ind[2]
+    ψ["λr"][ind...], ψ["λu"][ind...], ψ["λu"][indu...], ψ["λr"][indl...]
+end
+
+
+function normalize!(Latt::AbstractLattice, ψ::Dict)
+    for i in 1:length(Latt)
+        ψ["λu"][i] /= norm(ψ["λu"][i])
+        ψ["λr"][i] /= norm(ψ["λr"][i])
+        ψ["Γ"][i] /= norm(ψ["Γ"][i])
+    end
+end

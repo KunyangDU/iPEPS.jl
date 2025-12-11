@@ -1,11 +1,11 @@
 include("../src/iPEPS.jl")
 
-Lx = 2
-Ly = 2
+Lx = 4
+Ly = 4
 @load "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
 D = 2
-params = (J = 0.0, h = 10.0)
+params = (J = 1.0, h = 0.0)
 
 @load "Heisenberg/data/Obs_$(Lx)x$(Ly)_$(D)_$(params).jld2" Obs
 
@@ -17,8 +17,6 @@ figsize = (height = (Ly+1)*50, width = (Lx + 1)*50)
 fig = Figure()
 ax = Axis(fig[1,1];autolimitaspect = true,figsize...)
 
-
-# latticescatter!(ax,Latt)
 plotLatt!(ax,Latt;site = true,tplevel = (1,),sitelabel = false,
 sitesize = 12*ones(length(Latt))
 )
@@ -34,6 +32,6 @@ Colorbar(fig[1,2],colormap = :bwr,colorrange = (-1/2,1/2),label = L"S_z")
 resize_to_layout!(fig)
 display(fig)
 
-# Sz
+Obs["E"]
 
 
