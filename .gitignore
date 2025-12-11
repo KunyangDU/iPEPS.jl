@@ -1,0 +1,6 @@
+*.jld2
+*.png
+*.pdf
+*.vscode
+*.DS_store
+backups*
