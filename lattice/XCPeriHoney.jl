@@ -2,8 +2,8 @@
 include("../src/iPEPS.jl")
 
 
-Lx = 2
-Ly = 2
+Lx = 1
+Ly = 1
 
 Latt = XCPeriHoneycomb(Lx,Ly)
 

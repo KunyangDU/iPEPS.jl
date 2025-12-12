@@ -1,13 +1,9 @@
 using TensorKit
+include("../src/iPEPS.jl")
 pspace = ℂ^2
-Sx = [0 1;1 0] / 2
-Sy = [0 -1im;1im 0] / 2
-Sz = [1 0;0 -1] / 2
+A = [rand(pspace,pspace) for i in 1:3]
+a = A[2]
+a0 = deepcopy(a)
 
-
-    
-# A = reshape(Sx,2,2,1)
-
-A = TensorMap(Sz,pspace,pspace)
-O1_2_O2(A,pspace)
-# TensorMap(kron(convert(Array,A),diagm(ones(2))), pspace ⊗ pspace,pspace ⊗ pspace)
+a *=2 
+A[2] == a0

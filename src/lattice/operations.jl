@@ -6,6 +6,8 @@ function neighbor(Latt::AbstractLattice,i::Int64;level::Int64 = 1,ordered::Bool 
     return neighbor(nb,i)
 end
 neighbor(nb::Vector,i::Int64) = filter(x -> i in x,nb)
+neighbor_pbc(nb::Vector,i::Int64) = filter(x -> i in x[1],nb)
+
 function neighborsites(Latt::AbstractLattice,i::Int64;level::Int64 = 1)
     return map(x -> x[1] == i ? x[2] : x[1], neighbor(Latt,i;level = level,ordered = false,issort = true))
 end
@@ -30,8 +32,8 @@ end
 """
 position in Descartes coordinate
 """
-function coordinate(Latt::AbstractLattice,i::Int64)
-    return loc_to_pos(Latt[i][2],Latt[i][1],Latt.unitcell)
+function coordinate(Latt::AbstractLattice,i::Int64,v::Vector = [0,0])
+    return loc_to_pos(Latt[i][2],Latt[i][1],Latt.unitcell) + Latt.unitcell.lattice_vecs * (size(Latt) .* v)
 end
 # """
 #     coordinate(Latt::AbstractLattice, i::Int)
@@ -193,7 +195,9 @@ function _build_neighbor_table(bonds, unit_cell::UnitCell{D}, lattice::Lattice{D
 
     return neighbor_tables
 end
-
+"""
+((i,j),v), v: i -> j lattice vector, real R = coord(j-i) + basis*v
+"""
 function neighbor_pbc(Latt::AbstractLattice;level::Int64 = 1,ordered::Bool = false, issort::Bool = false)
     nb = _build_neighbor_table(Latt.bond[(ordered,level)],Latt.unitcell,Latt.lattice)
     if issort
@@ -202,3 +206,20 @@ function neighbor_pbc(Latt::AbstractLattice;level::Int64 = 1,ordered::Bool = fal
     return map(x -> (Tuple(Latt.sitemap[x[1]]),x[2]), nb)
 end
 
+function neighbor_pbc(Latt::AbstractLattice,i::Int64;level::Int64 = 1,ordered::Bool = false,issort::Bool = false)
+    nb = neighbor_pbc(Latt;level = level,ordered = ordered,issort = issort)
+    return neighbor_pbc(nb,i)
+end
+
+# function neighborsites_pbc(Latt::AbstractLattice,i::Int64;level::Int64 = 1)
+#     return map(x -> (x[1][1] == i ? x[1][2] : x[1][1],x[2]), neighbor_pbc(Latt,i;level = level,ordered = false,issort = false))
+# end
+function neighborsites_pbc(Latt::AbstractLattice;level::Int64 = 1)
+    nbsites = [[] for i in 1:length(Latt)]
+    for ((i,j),v) in neighbor_pbc(Latt;level = level, issort = false, ordered = false)
+        v = collect(Int.( v ./ size(Latt)))
+        push!(nbsites[i], (j,v))
+        push!(nbsites[j], (i,-v))
+    end
+    return nbsites
+end

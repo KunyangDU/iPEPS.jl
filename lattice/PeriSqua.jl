@@ -1,8 +1,8 @@
 using Random
 include("../src/iPEPS.jl")
 
-Lx = 4
-Ly = 4
+Lx = 2
+Ly = 2
 
 # Latt = PeriSqua(Lx,Ly,Tuple(shuffle(1:length(ψ))))
 Latt = PeriSqua(Lx,Ly)

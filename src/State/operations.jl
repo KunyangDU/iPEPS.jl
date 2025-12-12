@@ -18,3 +18,6 @@ function normalize!(Latt::AbstractLattice, ψ::Dict)
         ψ["Γ"][i] /= norm(ψ["Γ"][i])
     end
 end
+
+_swap_gate(pspace::ElementarySpace) = permute(id(pspace ⊗ pspace) , (2, 1), (3, 4))
+

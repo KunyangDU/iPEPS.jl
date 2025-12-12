@@ -167,3 +167,8 @@ end
 kbasis2(Latt::AbstractLattice) = collect.(eachcol(Latt.unitcell.reciprocal_vecs))
 # rbasis2(Latt::AbstractLattice) = collect.(eachcol(vcat(Latt.unitcell.lattice_vecs)))
 # rbasis3(Latt::AbstractLattice) = collect.(eachcol(vcat(Latt.unitcell.lattice_vecs,zeros(2)')))
+function hoppingvector(Latt::AbstractLattice,i::Int64,j::Int64,v::Vector)
+    return coordinate(Latt,j) - coordinate(Latt,i) + Latt.unitcell.lattice_vecs * (size(Latt) .* v)
+end
+
+displacement(Latt::AbstractLattice,i::Tuple,j::Tuple) = coordinate(Latt,j...) - coordinate(Latt,j...)

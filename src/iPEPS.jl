@@ -23,5 +23,6 @@ include("lattice/tools.jl")
 include("lattice/operations.jl")
 include("lattice/plot.jl")
 include("lattice/geometry.jl")
+include("lattice/tree.jl")
 
 
