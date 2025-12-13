@@ -22,3 +22,6 @@ function diagm(A::Pair{Int64, Vector{T}}) where T
     return B
 end
 diagm(A::Vector) = diagm(0 => A)
+
+Base.kron(A::AbstractTensorMap, B::AbstractTensorMap) = @tensor C[a, c; b, d] := A[a; b] * B[c; d]
+

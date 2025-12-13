@@ -1,8 +1,8 @@
 using TensorKit
 include("../src/iPEPS.jl")
 
-Lx = 4
-Ly = 4
+Lx = 2
+Ly = 2
 Latt = PeriSqua(Lx,Ly)
 @save "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
@@ -11,8 +11,8 @@ D = 2
 ψ = let pspace = TrivialSpinOneHalf.pspace, aspace = ℂ^1
     Dict(
         "Γ" => [rand(ComplexF64, aspace ⊗ aspace ⊗ pspace, aspace ⊗ aspace) for i in 1:Lx, j in 1:Ly],
-        "λu" => [normalize(rand(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly],
-        "λr" => [normalize(rand(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly]
+        "λu" => [(isometry(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly],
+        "λr" => [(isometry(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly]
     )
 end
 
@@ -34,10 +34,10 @@ SUalgo = Dict(
     "τ" => 0.0,
 )
 
-params = (J = 1.0, h = 100.0)
-H["H1"] = params.h * TrivialSpinOneHalf.Sh(-[0.0,0.0,1.0])
-SUalgo["τs"] = [0.1,]
-SUupdate!(ψ,H,Latt,SUalgo)
+# params = (J = 1.0, h = 100.0)
+# H["H1"] = params.h * TrivialSpinOneHalf.Sh(-[0.0,0.0,1.0])
+# SUalgo["τs"] = [0.1,]
+# SUupdate!(ψ,H,Latt,SUalgo)
 
 params = (J = 1.0, h = 0.0)
 H["H1"] = params.h * TrivialSpinOneHalf.Sh(-[0.0,0.0,1.0])
@@ -60,3 +60,6 @@ end
 
 @save "Heisenberg/data/Obs_$(Lx)x$(Ly)_$(D)_$(params).jld2" Obs
 
+@show Obs["E"]
+Obs["S"]
+λs(ψ,Latt,1)
