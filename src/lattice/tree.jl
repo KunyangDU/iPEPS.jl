@@ -62,7 +62,7 @@ isinside(A::Tuple{Int64, Vector{Int64}}, root::LatticeTreeNode) = A  ∈ map(x -
 
 function findpath(Latt::AbstractLattice, initial::Tuple, target::Tuple, N::Int64 = 4)
     root = LatticeTreeNode(initial)
-    buildtree!(root,neighborsites_pbc(Latt),target,N)
+    buildtree!(root,neighborsites_pbc(Latt),initial,target,N)
     path = Vector[]
     for l in Leaves(root)
         if l.A == target
@@ -74,11 +74,11 @@ function findpath(Latt::AbstractLattice, initial::Tuple, target::Tuple, N::Int64
             push!(path,tmppath)
         end
     end
-    return path
+    return Tuple.(path)
 end
 
-function buildtree!(root::LatticeTreeNode, nbsites::Vector, target::Tuple, N::Int64 = 4)
-    totalsites = [(1,[0,0]),]
+function buildtree!(root::LatticeTreeNode, nbsites::Vector, initial::Tuple, target::Tuple, N::Int64 = 4)
+    totalsites = [initial,]
 
     leaves = collect(Leaves(root))
     while target ∉ map(x -> x.A, leaves)
@@ -99,3 +99,40 @@ function buildtree!(root::LatticeTreeNode, nbsites::Vector, target::Tuple, N::In
     return root
 end
 
+
+function findpath(Latt::AbstractLattice, initial::Tuple, targets::Vector, N::Int64 = 4)
+    root = LatticeTreeNode(initial)
+    leaves = collect(Leaves(root))
+    totalsites = [initial,]
+    nbsites = neighborsites_pbc(Latt)
+    tgs = deepcopy(targets)
+    while !isempty(tgs)
+        childrens = LatticeTreeNode[]
+        childrensites = Tuple[]
+        for l in leaves
+            i,v = l.A
+            for (inbs,nbs) in enumerate(map(x -> (x[1],x[2] + v),nbsites[i]))
+                nbs in totalsites && continue 
+                addchild!(l,nbs)
+                push!(childrensites,nbs)
+            end
+            push!(childrens, l.children...)
+        end
+        push!(totalsites,childrensites...)
+        leaves = childrens
+        setdiff!(tgs,map(x -> x.A,leaves))
+    end
+    paths = [Tuple[] for _ in eachindex(targets)]
+    for l in PreOrderDFS(root)
+        id = findfirst(x -> x == l.A, targets)
+        isnothing(id) && continue
+        tmppath = Tuple[]
+        while !isnothing(l)
+            push!(tmppath,l.A)
+            l = l.parent
+        end
+        push!(paths[id], Tuple(tmppath))
+    end
+
+    return paths
+end

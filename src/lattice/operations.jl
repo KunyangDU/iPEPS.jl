@@ -223,3 +223,12 @@ function neighborsites_pbc(Latt::AbstractLattice;level::Int64 = 1)
     end
     return nbsites
 end
+
+function ineighbor(Latt::AbstractLattice;level::Int64 = 1,ordered::Bool = false)
+    nbs = Tuple[]
+    for ((i,j),v) in neighbor_pbc(Latt;level = level, issort = false, ordered = ordered)
+        v = collect(Int.( v ./ size(Latt)))
+        push!(nbs,((i,[0,0]), (j,v)))
+    end
+    return nbs
+end
