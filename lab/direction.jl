@@ -19,10 +19,10 @@ mutable struct LGState{Lx,Ly} <: AbstractState
     λ::Vector{AbstractTensorMap}
     nnsites::Tuple
     nntable::Dict{Tuple,Tuple}
-    nn2λ::Dict{Tuple,Int64}
+    λindex::Tuple
     pspace::ElementarySpace
     function LGState(Latt::AbstractLattice)
-        return new{size(Latt)...}(Vector{AbstractTensorMap}(),Vector{AbstractTensorMap}(),(),Dict{Tuple,Tuple}(),Dict{Tuple,Int64}(),ℂ^1)
+        return new{size(Latt)...}(Vector{AbstractTensorMap}(),Vector{AbstractTensorMap}(),(),Dict{Tuple,Tuple}(),(),ℂ^1)
     end
 end
 
@@ -108,10 +108,18 @@ function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,a
     ψ.pspace = pspace
     ψ.nntable = build_direction_table(Latt)
 
+    nn2λ = Dict()
     for (i,n) in enumerate(nbs)
-        ψ.nn2λ[n] = i
-        ψ.nn2λ[_nn_reverse(n)] = i
+        nn2λ[n] = i
+        nn2λ[_nn_reverse(n)] = i
     end
+    
+    λindex = []
+    for i in 1:length(Latt)
+        push!(λindex,_λindex(ψ,i,nn2λ))
+    end
+    ψ.λindex = Tuple(λindex)
+
     return ψ
 end
 
@@ -119,17 +127,18 @@ function _nn_reverse(a::Tuple)
     return ((a[2][1],[0,0]),(a[1][1],-a[2][2]))
 end
 
-Base.getindex(ψ::LGState, i::Int64) = ψ.Γ[i],ψ.λ[_λindex(ψ,i)]
-_λindex(ψ::LGState, i::Int64) = map(x -> _λindex(ψ,i,x), [RIGHT(),UP(),DOWN(),LEFT()])
-_λindex(ψ::LGState, i::Int64, d::AbstractDirection) = ψ.nn2λ[((i,[0,0]),ψ.nntable[(i,[0,0]),d])]
+Base.getindex(ψ::LGState, i::Int64) = ψ.Γ[i],map(x -> ψ.λ[x],ψ.λindex[i])
+_λindex(ψ::LGState, i::Int64, nn2λ::Dict) = map(x -> _λindex(ψ,i,x,nn2λ), (RIGHT(),UP(),DOWN(),LEFT()))
+_λindex(ψ::LGState, i::Int64, d::AbstractDirection, nn2λ::Dict) = nn2λ[((i,[0,0]),ψ.nntable[(i,[0,0]),d])]
 
 function Base.replace!(ψ::LGState, Γ::AbstractTensorMap, i::Int64)
     ψ.Γ[i] = Γ
 end
-function Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, d::AbstractDirection)
-    ψ.λ[_λindex(ψ,i,d)] = λ
-end
-Base.replace!(ψ::LGState, λs::Vector, i::Int64, ds::Tuple = (RIGHT(),UP(),DOWN(),LEFT())) = map(x -> replace!(ψ,λs[x],i,ds[x]), 1:4)
+Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, ::RIGHT) = (ψ.λ[ψ.λindex[i][1]] = λ)
+Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, ::UP) = (ψ.λ[ψ.λindex[i][2]] = λ)
+Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, ::DOWN) = (ψ.λ[ψ.λindex[i][3]] = λ)
+Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, ::LEFT) = (ψ.λ[ψ.λindex[i][4]] = λ)
+Base.replace!(ψ::LGState, λs::Tuple, i::Int64, ds::Tuple = (RIGHT(),UP(),DOWN(),LEFT())) = map(x -> replace!(ψ,λs[x],i,ds[x]), 1:4)
 
 Latt = PeriSqua(8,8)
 
@@ -146,4 +155,7 @@ initialize!(Latt,H)
 initialize!(Latt,ψ,ℂ^2)
 end
 
-
+replace!(ψ,ψ[1][1],1)
+replace!(ψ,ψ[1][2],1)
+replace!(ψ,ψ[1][2][1],1,RIGHT())
+ψ.λindex[36][1] == ψ.λindex[37][4]
