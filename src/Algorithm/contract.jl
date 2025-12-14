@@ -33,13 +33,23 @@ function Γcontractud(Γd′::AbstractTensorMap,Γu′::AbstractTensorMap)
     return tmp
 end
 
-function actionlr(tmp::AbstractTensorMap, O::AbstractTensorMap)
+function actionlr(tmp::AbstractTensorMap, O::AbstractTensorMap{T,S,2,2}) where {T,S}
     @tensor tmp′[-1,-2,-3,-4,-5;-6,-7,-8] ≔ tmp[-1,-2,-3,1,2,-6,-7,-8] * O[-5,-4,2,1]
     return tmp′
 end
 
-function actionud(tmp::AbstractTensorMap, O::AbstractTensorMap)
+function actionlr(tmp::AbstractTensorMap, O::AbstractTensorMap{T,S,3,2}) where {T,S}
+    @tensor tmp′[-1,-2,-3,-4,-5,-9;-6,-7,-8] ≔ tmp[-1,-2,-3,1,2,-6,-7,-8] * O[-5,-4,-9,2,1]
+    return tmp′
+end
+
+function actionud(tmp::AbstractTensorMap, O::AbstractTensorMap{T,S,2,2}) where {T,S}
     @tensor tmp′[-1,-2,-3,-4,-5;-6,-7,-8] ≔ tmp[-1,-2,-3,1,2,-6,-7,-8] * O[-4,-5,1,2]
+    return tmp′
+end
+
+function actionud(tmp::AbstractTensorMap, O::AbstractTensorMap{T,S,3,2}) where {T,S}
+    @tensor tmp′[-1,-2,-3,-4,-5,-9;-6,-7,-8] ≔ tmp[-1,-2,-3,1,2,-6,-7,-8] * O[-4,-5,-9,1,2]
     return tmp′
 end
 

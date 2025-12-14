@@ -1,6 +1,16 @@
 using TensorKit,Random
 include("../src/iPEPS.jl")
 
+abstract type AbstractAlgorithm end
+mutable struct SimpleUpdate <: AbstractAlgorithm
+    trunc::TensorKit.TruncationScheme
+    tol::Float64
+    N::Int64
+    τs::Vector{Float64}
+    τ::Float64
+    noise::Float64
+end
+
 abstract type AbstractOperator end
 mutable struct Hamiltonian <: AbstractOperator
     H2::Dict{Tuple,TensorMap}
@@ -132,8 +142,8 @@ end
 
 function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace))
     nbs = ineighbor(Latt)
-    ψ.Γ = [rand(aspace ⊗ aspace ⊗ pspace, aspace ⊗ aspace) for _ in 1:length(Latt)]
-    ψ.λ = [isometry(aspace, aspace) for _ in 1:length(nbs)]
+    ψ.Γ = [rand(ComplexF64, aspace ⊗ aspace ⊗ pspace, aspace ⊗ aspace) for _ in 1:length(Latt)]
+    ψ.λ = [isometry(ComplexF64, aspace, aspace) for _ in 1:length(nbs)]
     ψ.nnsites = Tuple(neighborsites_pbc(Latt))
     ψ.pspace = pspace
     ψ.nntable,ψ.nn2d = build_direction_table(Latt)
@@ -172,18 +182,18 @@ Base.replace!(ψ::LGState, λ::AbstractTensorMap, i::Int64, ::LEFT) = (ψ.λ[ψ.
 Base.replace!(ψ::LGState, λs::Tuple, i::Int64, ds::Tuple = (RIGHT(),UP(),DOWN(),LEFT())) = map(x -> replace!(ψ,λs[x],i,ds[x]), 1:4)
 
 
-function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP, SUalgo::Dict)
-    # (i,vi),(j,vj) = sitei,sitej
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP, algo::SimpleUpdate)
+    to = TimerOutput()
     Γu, (λur, λuu, λud, λul) = ψ[j]
     Γd, (λdr, λdu, λdd, λdl) = ψ[i]
     @assert λud == λdu
 
-    Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
-    Γd′ = λΓcontract(Γd, λdr, sqrt(λdu), λdd, λdl)
+    @timeit to "λ-Γ contract" Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
+    @timeit to "λ-Γ contract" Γd′ = λΓcontract(Γd, λdr, sqrt(λdu), λdd, λdl)
 
-    tmp′ = actionud(Γcontractud(Γd′,Γu′), O) |> x -> x + SUalgo["noise"] * rand(space(x))
+    @timeit to "action" tmp′ = actionud(Γcontractud(Γd′,Γu′), O) |> x -> x + algo.noise * rand(space(x))
 
-    Γu′,Λ,Γd′,ϵ_trunc = tsvd(tmp′,(2,3,5,8),(1,4,6,7);trunc = truncbelow(SUalgo["ϵ"]) & truncdim(SUalgo["D"]))
+    @timeit to "svd" Γu′,Λ,Γd′,ϵ_trunc = tsvd(tmp′,(2,3,5,8),(1,4,6,7);trunc = algo.trunc)
     Γu′ = permute(Γu′,(1,2,3),(5,4))
     Γd′ = permute(Γd′,(2,1,3),(4,5))
     Λ = normalize(Λ)
@@ -193,21 +203,21 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP,
     replace!(ψ,invu(Γu′,λur, λuu, λul),j)
     replace!(ψ,invd(Γd′,λdr, λdd, λdl),i)
 
-    return ψ, ϵ_trunc, ϵ_λ
+    return ψ, ϵ_trunc, ϵ_λ, to
 end
 
-function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIGHT, SUalgo::Dict)
-    # (i,vi),(j,vj) = sitei,sitej
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIGHT, algo::SimpleUpdate)
+    to = TimerOutput()
     Γl, (λlr, λlu, λld, λll) = ψ[i]
     Γr, (λrr, λru, λrd, λrl) = ψ[j]
     @assert λlr == λrl
 
-    Γl′ = λΓcontract(Γl, sqrt(λlr), λlu, λld, λll)
-    Γr′ = λΓcontract(Γr, λrr, λru, λrd, sqrt(λrl))
+    @timeit to "λ-Γ contract" Γl′ = λΓcontract(Γl, sqrt(λlr), λlu, λld, λll)
+    @timeit to "λ-Γ contract" Γr′ = λΓcontract(Γr, λrr, λru, λrd, sqrt(λrl))
 
-    tmp′ = actionlr(Γcontractlr(Γl′,Γr′),O) |> x -> x + SUalgo["noise"] * rand(space(x))
+    @timeit to "action" tmp′ = actionlr(Γcontractlr(Γl′,Γr′),O) |> x -> x + algo.noise * rand(space(x))
 
-    Γr′,Λ,Γl′,ϵ_trunc = tsvd(tmp′,(1,2,4,6),(3,5,7,8);trunc = truncbelow(SUalgo["ϵ"]) & truncdim(SUalgo["D"]))
+    @timeit to "svd" Γr′,Λ,Γl′,ϵ_trunc = tsvd(tmp′,(1,2,4,6),(3,5,7,8);trunc = algo.trunc)
 
     Γl′ = permute(Γl′,(1,2,3),(4,5))
     Γr′ = permute(Γr′,(1,2,3),(4,5))
@@ -218,26 +228,43 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIG
     replace!(ψ,invl(Γl′,λlu, λll, λld),i)
     replace!(ψ,invr(Γr′,λrr, λru, λrd),j)
 
-    return ψ, ϵ_trunc, ϵ_λ
+    return ψ, ϵ_trunc, ϵ_λ, to
+end
+
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, ::SimpleUpdate)
+    to = TimerOutput()
+    Γ = ψ[i][1]
+    @timeit to "action" @tensor Γ′[-1,-2,-3;-4,-5] ≔ Γ[-1,-2,1,-4,-5] * O[-3,1]
+    replace!(ψ,normalize(Γ′),i)
+    return ψ, 0.0, 0.0, to
 end
 
 
-function _SUupdate!(ψ::LGState, H::Hamiltonian, SUalgo::Dict)
+function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate)
     ϵ_trunc_tol = 0.0
     ϵ_λ_tol = 0.0
+    sites1 = collect(keys(H.H1))
+    to = TimerOutput()
+    
     for (((i,vi),(j,vj)),Heff) in H.H2
-        if i in keys(H.H1)
-            H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
-            Heff += H1
+        setdiff!(sites1,[i,j])
+        @timeit to "build Heff" begin
+            if i in keys(H.H1)
+                H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
+                Heff += H1
+            end
+
+            if j in keys(H.H1)
+                H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
+                Heff += H1
+            end
         end
 
-        if j in keys(H.H1)
-            H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
-            Heff += H1
-        end
+        norm(Heff) < 1e-12 && continue
         
         if haskey(ψ.nn2d,((i,vi),(j,vj)))
-            _,ϵ_trunc,ϵ_λ = _SUupdate!(ψ,exp(- SUalgo["τ"] * Heff),i,j,ψ.nn2d[(i,vi),(j,vj)], SUalgo)
+            @timeit to "update2!" _,ϵ_trunc,ϵ_λ,localto = _SUupdate!(ψ,exp(- algo.τ * Heff),i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
+            merge!(to,localto;tree_point = ["update2!"])
         else
             # swap int
             ϵ_trunc = 0.0
@@ -248,20 +275,38 @@ function _SUupdate!(ψ::LGState, H::Hamiltonian, SUalgo::Dict)
         ϵ_λ_tol += ϵ_λ
     end
 
-    return ϵ_trunc_tol / length(ψ), ϵ_λ_tol / length(ψ)
+    for i in sites1
+        norm(H.H1[i]) < 1e-12 && continue
+        @timeit to "update1!" _,ϵ_trunc,ϵ_λ,localto = _SUupdate!(ψ,exp(- algo.τ * H.H1[i]),i, algo)
+        merge!(to,localto;tree_point = ["update1!"])
+        ϵ_trunc_tol += ϵ_trunc
+        ϵ_λ_tol += ϵ_λ
+    end
+
+    return ϵ_trunc_tol / length(ψ), ϵ_λ_tol / length(ψ), to
 end
 
-function SUupdate!(ψ::LGState, H::Hamiltonian, SUalgo::Dict)
-    for τ in SUalgo["τs"]
-        SUalgo["τ"] = τ
-        for i in 1:SUalgo["N"]
-            SUalgo["noise"] = 0.0
-            ϵ,tol = _SUupdate!(ψ,H,SUalgo)
-            tol < τ * SUalgo["tol"] && break
-            if i == SUalgo["N"]
-                println("SU update not converged!")
+function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
+    showperstep::Int64 = 500)
+    to = TimerOutput()
+    for τ in algo.τs
+        tmpto = TimerOutput()
+        algo.τ = τ
+        for i in 1:algo.N
+            ϵ,tol,localto = _SUupdate!(ψ,H,algo)
+            merge!(tmpto,localto)
+            tol < τ * algo.tol && break
+            if i == algo.N
+                println("SimpleUpdate update not converged!")
+            end
+            if mod(i,showperstep) == 0
+                show(tmpto;title = "$(i)/$(algo.N)\nτ = $(τ)")
+                print("\n")
             end
         end
+        merge!(to,tmpto)
+        show(to;title = "Simple Update\n -> $(τ)")
+        print("\n")
     end
 end
 
@@ -304,9 +349,10 @@ function addObs1!(O::Observable,sites::Union{UnitRange,Vector},h::TensorMap)
     return O
 end
 
-function densify(A::Vector,codom::ElementarySpace = space(A[1])[1], dom::ElementarySpace = space(A[1])[2]')
+function densify(A::Vector,codom::ProductSpace = codomain(A[1]), dom::ProductSpace = codomain(A[1]))
     N = length(A)
-    return TensorMap(cat(map(x -> reshape(x,dim(codom),1,dim(dom)),convert.(Array,A))...;dims = 2), codom ⊗ ℂ^N, dom)
+    return TensorMap(cat(map(x -> reshape(convert(Array,x),dim.(codom)...,1,dim.(dom)...),A)...;dims = length(codom) + 1), codom ⊗ ℂ^N, dom)
+    # return TensorMap(cat(map(x -> reshape(x,dim(codom),1,dim(dom)),convert.(Array,A))...;dims = 2), codom ⊗ ℂ^N, dom)
 end
 
 function densify!(O::Observable)
@@ -326,17 +372,23 @@ end
 
 function calObs!(O::Observable, ψ::LGState)
     for (i,o) in O.O1
-        Γ′ = λΓcontract(ψ[i][1],ψ[i][2]...)
-        tmp = _inner(Γ′,o,Γ′)
-        O.values[i] = real(convert(Array,tmp))
+        O.values[i] = real(_calObs1(ψ,o,i))
+    end
+    for (((i,vi),(j,vj)),o) in O.O2
+        O.values[((i,vi),(j,vj))] = real(_calObs2(ψ,o,i,j,ψ.nn2d[(i,vi),(j,vj)]))
     end
     return O
 end
 
-function measure2(ψ::LGState,H::Hamiltonian)
+
+
+function measure(ψ::LGState,H::Hamiltonian)
     E = 0.0
     for ((sitei,sitej),J) in H.H2
         E += _calObs2(ψ,J,sitei,sitej)
+    end
+    for (i,h) in H.H1 
+        E += _calObs1(ψ,h,i)
     end
     return E
 end
@@ -367,16 +419,21 @@ function _calObs2(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP)
     return real(_inner(tmp′,tmp))
 end
 
-
 _calObs2(ψ::LGState,O::AbstractTensorMap, sitei::Tuple, sitej::Tuple) = _calObs2(ψ,O,sitei[1],sitej[1],ψ.nn2d[(sitei,sitej)])
+
+function _calObs1(ψ::LGState, o::AbstractTensorMap, i::Int64)
+    Γ′ = λΓcontract(ψ[i][1],ψ[i][2]...)
+    return real(_inner(Γ′,o,Γ′))
+end
+
 
 
 Latt = PeriSqua(2,2)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-addIntr2!(H,ineighbor(Latt),LocalSpace.SJ(1 * diagm(ones(3))))
-# addIntr1!(H,1,LocalSpace.Sh(- [0,0,100]))
-addIntr1!(H,1,- 1* LocalSpace.Sh([0,0,1]))
+addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(1 * diagm(ones(3))))
+# addIntr1!(H,1:4,LocalSpace.Sh(-[0,0,1000]))
+# addIntr1!(H,1,- 0.0001* LocalSpace.Sh([0,1,0]))
 # addIntr2!(H,ineighbor(Latt;level = 2),LocalSpace.SJ(diagm(ones(3))))
 end
 
@@ -387,25 +444,28 @@ initialize!(Latt,H,ℂ^2)
 initialize!(Latt,ψ,ℂ^2)
 end
 
-SUalgo = Dict(
-    "ϵ" => 1e-8,
-    "D" => 2,
-    "tol" => 1e-4,
-    "N" => 3000,
-    "τs" => [0.01,0.001],
-    # "τ" => 0.01,
-    # "noise" => 0.0
+D = 3
+
+sualgo = SimpleUpdate(
+    truncdim(D) & truncbelow(1e-8),
+    1e-4,
+    3000,
+    [0.01,0.001],
+    0.0,
+    0.0
 )
 
+SU!(ψ,H,sualgo)
 
-SUupdate!(ψ,H,SUalgo)
-
-@show measure2(ψ,H) / length(ψ)
+@show measure(ψ,H) / length(ψ)
 
 O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
 addObs1!(obs,1:length(Latt),LocalSpace.Sx)
 addObs1!(obs,1:length(Latt),LocalSpace.Sy)
 addObs1!(obs,1:length(Latt),LocalSpace.Sz)
+addObs2!(obs,ineighbor(Latt),LocalSpace.SxSx)
+addObs2!(obs,ineighbor(Latt),LocalSpace.SySy)
+addObs2!(obs,ineighbor(Latt),LocalSpace.SzSz)
 initialize!(Latt,obs)
 densify!(obs)
 end
@@ -413,3 +473,4 @@ end
 calObs!(O,ψ)
 O.values
 
+# densify([TrivialSpinOneHalf.SxSx,TrivialSpinOneHalf.SySy])

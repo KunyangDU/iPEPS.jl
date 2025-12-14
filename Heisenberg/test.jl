@@ -1,14 +1,39 @@
 using TensorKit
 include("../src/iPEPS.jl")
-pspace = ℂ^2
-A = TensorMap([0 1;1 0],pspace,pspace)
-B = TensorMap([0 1;1 0],pspace,pspace)
+# pspace = ℂ^2
+# A = TensorMap([0 1;1 0],pspace,pspace)
+# B = TensorMap([0 1;1 0],pspace,pspace)
 
-C = TensorMap(kron([0 1;1 0],[0 1;1 0]),pspace ⊗ pspace,pspace ⊗ pspace)
-C == kron(A,B)
+# C = TensorMap(kron([0 1;1 0],[0 1;1 0]),pspace ⊗ pspace,pspace ⊗ pspace)
+# C == kron(A,B)
+# codom = codomain(C)
+# dom = domain(C)
+
+to = TimerOutput()
+
+@timeit to "Hello" rand()
+to
+# using TensorKit
+
+# # 假设 A 是一个 TensorMap
+# # 1. 获取 Codomain (输出/左侧指标) 每个空间的维数
+# dims_codomain = dim.(codomain(C))
+
+# # 2. 获取 Domain (输入/右侧指标) 每个空间的维数
+# dims_domain = dim.(domain(C))
+
+# # 打印结果
+# println("Codomain dims: ", dims_codomain)
+# println("Domain dims: ", dims_domain)
 
 
+# N = 2
+# cat(map(x -> reshape(convert(Array,x),dim(codom),1,dim(dom)),[C,C])...;dims = 2)
 
+# codom ⊗ ℂ^2
+# dim(cat(map(x -> reshape(convert(Array,x),dim(codom),1,dim(dom)),[C,C])...;dims = 2))
+# dim(codom)
+# reshape(convert(Array,C),dim(codom),1,dim(dom))
 # densify([A,B])
 # space(A)[2]
 # using TensorKit
