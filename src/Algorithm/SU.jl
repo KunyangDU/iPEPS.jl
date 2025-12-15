@@ -1,95 +1,153 @@
-
-function _SUupdate!(ψ::Dict, O::AbstractTensorMap,Latt::AbstractLattice, i::Int64, j::Int64, ::RIGHT, SUalgo::Dict)
-    λlr, λlu, λld, λll= λs(ψ,Latt,i)
-    λrr, λru, λrd, λrl= λs(ψ,Latt,j)
-    Γl = ψ["Γ"][(Latt[i][2] + [1,1])...]
-    Γr = ψ["Γ"][(Latt[j][2] + [1,1])...]
-    @assert λlr == λrl
-
-    Γl′ = λΓcontract(Γl, sqrt(λlr), λlu, λld, λll)
-    Γr′ = λΓcontract(Γr, λrr, λru, λrd, sqrt(λrl))
-
-    tmp′ = actionlr(Γcontractlr(Γl′,Γr′),O) |> x -> x + SUalgo["noise"] * rand(space(x))
-
-    Γr′,Λ,Γl′,ϵ_trunc = tsvd(tmp′,(1,2,4,6),(3,5,7,8);trunc = truncbelow(SUalgo["ϵ"]) & truncdim(SUalgo["D"]))
-
-    Γl′ = permute(Γl′,(1,2,3),(4,5))
-    Γr′ = permute(Γr′,(1,2,3),(4,5))
-    Λ = normalize(Λ)
-
-    ϵ_λ = diff(ψ["λr"][(Latt[i][2] + [1,1])...], Λ)
-    ψ["λr"][(Latt[i][2] + [1,1])...] = Λ
-
-
-    ψ["Γ"][(Latt[i][2] + [1,1])...] = invl(Γl′,λlu, λll, λld)
-    ψ["Γ"][(Latt[j][2] + [1,1])...] = invr(Γr′,λrr, λru, λrd)
-    return ψ, ϵ_trunc, ϵ_λ
-end
-
-function _SUupdate!(ψ::Dict, O::AbstractTensorMap,Latt::AbstractLattice, i::Int64, j::Int64, ::UP, SUalgo::Dict)
-    λur, λuu, λud, λul= λs(ψ,Latt,j)
-    λdr, λdu, λdd, λdl= λs(ψ,Latt,i)
-    Γu = ψ["Γ"][(Latt[j][2] + [1,1])...]
-    Γd = ψ["Γ"][(Latt[i][2] + [1,1])...]
-    @assert λud == λdu
-
-    Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
-    Γd′ = λΓcontract(Γd, λdr, sqrt(λdu), λdd, λdl)
-
-    tmp′ = actionud(Γcontractud(Γd′,Γu′), O) |> x -> x + SUalgo["noise"] * rand(space(x))
-
-    Γu′,Λ,Γd′,ϵ_trunc = tsvd(tmp′,(2,3,5,8),(1,4,6,7);trunc = truncbelow(SUalgo["ϵ"]) & truncdim(SUalgo["D"]))
-    Γu′ = permute(Γu′,(1,2,3),(5,4))
-    Γd′ = permute(Γd′,(2,1,3),(4,5))
-    Λ = normalize(Λ)
-    ϵ_λ = diff(ψ["λu"][(Latt[i][2] + [1,1])...],Λ)
-
-    ψ["λu"][(Latt[i][2] + [1,1])...] = Λ
-    ψ["Γ"][(Latt[j][2] + [1,1])...] = invu(Γu′,λur, λuu, λul)
-    ψ["Γ"][(Latt[i][2] + [1,1])...] = invd(Γd′,λdr, λdd, λdl)
-    return ψ, ϵ_trunc, ϵ_λ
-end
-
-
-function _SUupdate!(ψ::Dict,H::Dict,Latt::AbstractLattice, SUalgo::Dict;pspace = ℂ^2)
-    ϵ_trunc_tol = 0.0
-    ϵ_λ_tol = 0.0
-    for (ind,((i,j),v)) in enumerate(H["sites2"])
-        R = Latt[j][2] - Latt[i][2] + v
-        
-        Heff = H["H2"]
-        if i in H["sites1"]
-            H1 = O1_2_O2_r(H["H1"],pspace) / H["sites1nb"][i]
-            Heff += H1
-        end
-
-        if j in H["sites1"]
-            H1 = O1_2_O2_l(H["H1"],pspace) / H["sites1nb"][j]
-            Heff += H1
-        end
-
-        O = exp(- SUalgo["τ"] * Heff)
-        if R == [1,0]
-            _,ϵ_trunc,ϵ_λ = _SUupdate!(ψ,O,Latt,i,j,RIGHT(),SUalgo)
-        elseif R == [0,1]
-            _,ϵ_trunc,ϵ_λ = _SUupdate!(ψ,O,Latt,i,j,UP(),SUalgo)
-        end
-        ϵ_trunc_tol += ϵ_trunc
-        ϵ_λ_tol += ϵ_λ
-    end
-    return ϵ_trunc_tol / 2length(ψ["Γ"]), ϵ_λ_tol / 2length(ψ["Γ"])
-end
-
-function SUupdate!(ψ::Dict,H::Dict,Latt::AbstractLattice, SUalgo::Dict)
-    for τ in SUalgo["τs"]
-        SUalgo["τ"] = τ
-        for i in 1:SUalgo["N"]
-            SUalgo["noise"] = 0.0
-            ϵ,tol = _SUupdate!(ψ,H,Latt,SUalgo)
-            tol < τ * SUalgo["tol"] && break
-            if i == SUalgo["N"]
-                println("SU update not converged!")
+function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
+    showperstep::Int64 = 500)
+    to = TimerOutput()
+    for τ in algo.τs
+        tmpto = TimerOutput()
+        algo.τ = τ
+        E = 0.0
+        ΔE = 0.0
+        tol = 0.0
+        ϵ = 0.0
+        for i in 1:algo.N
+            ϵ,tol,E′,localto = _SUupdate!(ψ,H,algo)
+            ΔE,E = E′ - E, E′
+            merge!(tmpto,localto)
+            tol < τ * algo.tol && break
+            if i == algo.N
+                println("SimpleUpdate update not converged!")
+            end
+            if mod(i,showperstep) == 0
+                show(tmpto;title = "$(i)/$(algo.N)\nτ = $(τ)")
+                println("\nE = $(E), ΔE/|E| = $(ΔE / abs(E)), TruncErr = $(ϵ), λErr = $(tol)")
+                # print("\n")
             end
         end
+        merge!(to,tmpto)
+        show(to;title = "Simple Update\n -> $(τ)")
+        println("\nE = $(E), ΔE/|E| = $(ΔE / abs(E)), TruncErr = $(ϵ), λErr = $(tol)")
     end
+end
+
+
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP, algo::SimpleUpdate)
+    to = TimerOutput()
+    Γu, (λur, λuu, λud, λul) = ψ[j]
+    Γd, (λdr, λdu, λdd, λdl) = ψ[i]
+    @assert λud == λdu
+
+    @timeit to "λ-Γ contract" Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
+    @timeit to "λ-Γ contract" Γd′ = λΓcontract(Γd, λdr, sqrt(λdu), λdd, λdl)
+
+    @timeit to "kernalize" DΓ,K,UΓ = kernalize(Γd′,Γu′,UP())
+    @timeit to "action" C = action(K,exp(- algo.τ * O))
+    @timeit to "measure" ΔE = real(_inner(action(K,O),K))
+    @timeit to "svd" U,Λ,V,ϵ_trunc = tsvd(C,(1,2),(3,4);trunc = algo.trunc)
+    @timeit to "dekernalize" Γd′ = dekernalize(DΓ,V,UP())
+    @timeit to "dekernalize" Γu′ = dekernalize(UΓ,U,DOWN())
+    # @timeit to "action" tmp′ = actionud(Γcontractud(Γd′,Γu′), O) |> x -> x + algo.noise * rand(space(x))
+
+    # @timeit to "svd" Γu′,Λ,Γd′,ϵ_trunc = tsvd(tmp′,(2,3,5,8),(1,4,6,7);trunc = algo.trunc)
+    # Γu′ = permute(Γu′,(1,2,3),(5,4))
+    # Γd′ = permute(Γd′,(2,1,3),(4,5))
+    Λ = normalize(Λ)
+    ϵ_λ = diff(ψ[i][2][2],Λ)
+
+    replace!(ψ,Λ,i,UP())
+    replace!(ψ,invu(Γu′,λur, λuu, λul),j)
+    replace!(ψ,invd(Γd′,λdr, λdd, λdl),i)
+
+    return ψ, ϵ_trunc, ϵ_λ, ΔE, to
+end
+
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIGHT, algo::SimpleUpdate)
+    to = TimerOutput()
+    Γl, (λlr, λlu, λld, λll) = ψ[i]
+    Γr, (λrr, λru, λrd, λrl) = ψ[j]
+    @assert λlr == λrl
+
+    @timeit to "λ-Γ contract" Γl′ = λΓcontract(Γl, sqrt(λlr), λlu, λld, λll)
+    @timeit to "λ-Γ contract" Γr′ = λΓcontract(Γr, λrr, λru, λrd, sqrt(λrl))
+
+    @timeit to "kernalize" LΓ,K,RΓ = kernalize(Γl′,Γr′,RIGHT())
+    @timeit to "action" C = action(K,exp(- algo.τ * O))
+    @timeit to "measure" ΔE = real(_inner(action(K,O),K))
+    @timeit to "svd" U,Λ,V,ϵ_trunc = tsvd(C,(1,2),(3,4);trunc = algo.trunc)
+    @timeit to "dekernalize" Γl′ = dekernalize(LΓ,V,RIGHT())
+    @timeit to "dekernalize" Γr′ = dekernalize(RΓ,U,LEFT())
+
+    # @timeit to "action" tmp′ = actionlr(Γcontractlr(Γl′,Γr′),O) |> x -> x + algo.noise * rand(space(x))
+
+    # @timeit to "svd" Γr′,Λ,Γl′,ϵ_trunc = tsvd(tmp′,(1,2,4,6),(3,5,7,8);trunc = algo.trunc)
+
+    # Γl′ = permute(Γl′,(1,2,3),(4,5))
+    # Γr′ = permute(Γr′,(1,2,3),(4,5))
+    Λ = normalize(Λ)
+
+    ϵ_λ = diff(ψ[i][2][1], Λ)
+    
+    replace!(ψ,Λ,i,RIGHT())
+    replace!(ψ,invl(Γl′,λlu, λll, λld),i)
+    replace!(ψ,invr(Γr′,λrr, λru, λrd),j)
+
+    return ψ, ϵ_trunc, ϵ_λ, ΔE, to
+end
+
+function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, algo::SimpleUpdate)
+    to = TimerOutput()
+    eO = exp(- algo.τ * O)
+    Γ = ψ[i][1]
+    @timeit to "action" @tensor Γ′[-1,-2,-3;-4,-5] ≔ Γ[-1,-2,1,-4,-5] * eO[-3,1]
+    @timeit to "measure" ΔE = real(λΓcontract(ψ[i][1],ψ[i][2]...) |> x -> _inner(x,O,x))
+    replace!(ψ,normalize(Γ′),i)
+    return ψ, 0.0, 0.0, ΔE, to
+end
+
+
+function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate)
+    ϵ_trunc_tol = 0.0
+    ϵ_λ_tol = 0.0
+    E = 0.0
+    sites1 = collect(keys(H.H1))
+    to = TimerOutput()
+    
+    for (((i,vi),(j,vj)),Heff) in H.H2
+        setdiff!(sites1,[i,j])
+        @timeit to "build Heff" begin
+            if i in keys(H.H1)
+                H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
+                Heff += H1
+            end
+
+            if j in keys(H.H1)
+                H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
+                Heff += H1
+            end
+        end
+
+        norm(Heff) < 1e-12 && continue
+        
+        if haskey(ψ.nn2d,((i,vi),(j,vj)))
+            @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
+            merge!(to,localto;tree_point = ["update2!"])
+        else
+            # swap int
+            ϵ_trunc = 0.0
+            ϵ_λ = 0.0
+        end
+
+        ϵ_trunc_tol += ϵ_trunc
+        ϵ_λ_tol += ϵ_λ
+        E += ΔE
+    end
+
+    for i in sites1
+        norm(H.H1[i]) < 1e-12 && continue
+        @timeit to "update1!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,H.H1[i],i, algo)
+        merge!(to,localto;tree_point = ["update1!"])
+        ϵ_trunc_tol += ϵ_trunc
+        ϵ_λ_tol += ϵ_λ
+        E += ΔE
+    end
+
+    return ϵ_trunc_tol / length(ψ), ϵ_λ_tol / length(ψ), E, to
 end

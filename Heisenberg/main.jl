@@ -1,65 +1,61 @@
-using TensorKit
+using TensorKit,Random
 include("../src/iPEPS.jl")
 
-Lx = 2
-Ly = 2
+Lx = 4
+Ly = 4
 Latt = PeriSqua(Lx,Ly)
 @save "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
+params = (J = 1.0, h = 0.0)
+
+H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J * diagm(ones(3))))
+    addIntr1!(H,1,LocalSpace.Sh(-[0,0,100]))
+    initialize!(Latt,H,ℂ^2)
+end
+
+
+ψ = LGState(Latt)
+initialize!(Latt,ψ,ℂ^2)
+
+
 D = 2
 
-ψ = let pspace = TrivialSpinOneHalf.pspace, aspace = ℂ^1
-    Dict(
-        "Γ" => [rand(ComplexF64, aspace ⊗ aspace ⊗ pspace, aspace ⊗ aspace) for i in 1:Lx, j in 1:Ly],
-        "λu" => [(isometry(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly],
-        "λr" => [(isometry(ComplexF64, aspace, aspace)) for i in 1:Lx, j in 1:Ly]
-    )
+sualgo = SimpleUpdate(
+    truncdim(D) & truncbelow(1e-12),
+    1e-4,
+    3000,
+    [0.1,],
+    0.0,
+    0.0
+)
+SU!(ψ,H,sualgo)
+
+H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J * diagm(ones(3))))
+    initialize!(Latt,H,ℂ^2)
 end
 
+sualgo.τs = [0.01,0.001]
+SU!(ψ,H,sualgo)
 
-params = (J = 1.0,)
-H = Dict(
-    "sites1" => [1,],
-    "sites2" => neighbor_pbc(Latt;issort = false),
-    "H2" => params.J * TrivialSpinOneHalf.SS,
-)
-H["sites1nb"] = map(x -> length(filter(y -> x in y[1],H["sites2"])), H["sites1"])
 
-SUalgo = Dict(
-    "ϵ" => 1e-8,
-    "D" => D,
-    "tol" => 1e-4,
-    "N" => 3000,
-    "τs" => [0.01,0.001],
-    "τ" => 0.0,
-)
-
-# params = (J = 1.0, h = 100.0)
-# H["H1"] = params.h * TrivialSpinOneHalf.Sh(-[0.0,0.0,1.0])
-# SUalgo["τs"] = [0.1,]
-# SUupdate!(ψ,H,Latt,SUalgo)
-
-params = (J = 1.0, h = 0.0)
-H["H1"] = params.h * TrivialSpinOneHalf.Sh(-[0.0,0.0,1.0])
-SUalgo["τs"] = [0.01,0.001]
-SUupdate!(ψ,H,Latt,SUalgo)
-
-Obs = Dict(
-    "S" => [],
-    "E" => measure2(ψ,H) / length(Latt)
-)
-for i in 1:length(Latt)
-    O = TrivialSpinOneHalf.Sv
-    λr, λu, λd, λl= λs(ψ,Latt,i)
-    Γ = ψ["Γ"][(Latt[i][2] + [1,1])...]
-    Γ′ = λΓcontract(Γ, λr, λu, λd, λl)
-    tmp = _inner(Γ′,O,Γ′)
-    push!(Obs["S"], real(convert(Array,tmp)))
+O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
+    addObs1!(obs,1:length(Latt),LocalSpace.Sx)
+    addObs1!(obs,1:length(Latt),LocalSpace.Sy)
+    addObs1!(obs,1:length(Latt),LocalSpace.Sz)
+    addObs2!(obs,ineighbor(Latt),LocalSpace.SxSx)
+    addObs2!(obs,ineighbor(Latt),LocalSpace.SySy)
+    addObs2!(obs,ineighbor(Latt),LocalSpace.SzSz)
+    initialize!(Latt,obs)
 end
 
+calObs!(O,ψ)
+data = Dict(
+    "Obs" => O.values,
+    "E" => measure(ψ,H),
+)
 
-@save "Heisenberg/data/Obs_$(Lx)x$(Ly)_$(D)_$(params).jld2" Obs
+@save "Heisenberg/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
-@show Obs["E"]
-Obs["S"]
-λs(ψ,Latt,1)
+data["E"]

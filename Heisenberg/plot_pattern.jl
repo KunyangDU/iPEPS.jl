@@ -1,15 +1,15 @@
 include("../src/iPEPS.jl")
 
-Lx = 4
-Ly = 4
+Lx = 2
+Ly = 2
 @load "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
 D = 2
 params = (J = 1.0, h = 0.0)
 
-@load "Heisenberg/data/Obs_$(Lx)x$(Ly)_$(D)_$(params).jld2" Obs
+@load "Heisenberg/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
-Sx,Sy,Sz = map(x -> map(y -> Obs["S"][y][x], 1:length(Latt)),1:3)
+Sx,Sy,Sz = map(x -> map(y -> data["Obs"][y][x], 1:length(Latt)),1:3)
 
 Latt = PeriSqua(Lx,Ly)
 figsize = (height = (Ly+1)*50, width = (Lx + 1)*50)
@@ -32,6 +32,9 @@ Colorbar(fig[1,2],colormap = :bwr,colorrange = (-1/2,1/2),label = L"S_z")
 resize_to_layout!(fig)
 display(fig)
 
-Obs["E"]
+save("Heisenberg/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).png",fig)
+save("Heisenberg/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).pdf",fig)
 
+data["E"]
+# Sz
 

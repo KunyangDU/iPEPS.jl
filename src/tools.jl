@@ -25,3 +25,29 @@ diagm(A::Vector) = diagm(0 => A)
 
 Base.kron(A::AbstractTensorMap, B::AbstractTensorMap) = @tensor C[a, c; b, d] := A[a; b] * B[c; d]
 
+
+trivial(::GradedSpace{I, D}) where {I, D} = GradedSpace{I,D}(TensorKit.SortedVectorDict(one(I) => 1), false)
+trivial(::ComplexSpace) = ℂ^1
+
+function Base.diff(A::AbstractTensorMap, B::AbstractTensorMap)
+    if rank(A) == rank(B)
+        return norm(A - B)
+    elseif rank(A) > rank(B)
+        return norm(A - pad(B,codomain(A)))
+    else
+        return norm(B - pad(A,codomain(B)))
+    end
+end
+
+
+function pad(S::AbstractTensorMap, new_space::VectorSpace)
+    # 1. 创建一个全零的新张量，定义在更大的空间上
+    S_padded = zeros(eltype(S), new_space, new_space)
+    for (c, b) in blocks(S)
+        b_padded = block(S_padded, c)
+        dims = size(b)
+        b_padded[1:dims[1], 1:dims[2]] = b
+    end
+    return S_padded
+end
+

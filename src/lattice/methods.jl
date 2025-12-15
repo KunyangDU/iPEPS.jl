@@ -1,4 +1,3 @@
-abstract type AbstractLattice end
 # abstract type SimpleLattice{D,S,L} <: AbstractLattice end
 
 Base.@propagate_inbounds Base.getindex(A::AbstractLattice, i::Int) = reverse(location(A,i))
