@@ -31,11 +31,11 @@ trivial(::ComplexSpace) = ℂ^1
 
 function Base.diff(A::AbstractTensorMap, B::AbstractTensorMap)
     if rank(A) == rank(B)
-        return norm(A - B)
+        return norm(A - B)^2
     elseif rank(A) > rank(B)
-        return norm(A - pad(B,codomain(A)))
+        return norm(A - pad(B,codomain(A)))^2
     else
-        return norm(B - pad(A,codomain(B)))
+        return norm(B - pad(A,codomain(B)))^2
     end
 end
 
@@ -51,3 +51,4 @@ function pad(S::AbstractTensorMap, new_space::VectorSpace)
     return S_padded
 end
 
+manualGC() = GC.gc()

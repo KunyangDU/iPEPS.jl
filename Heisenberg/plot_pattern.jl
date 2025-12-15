@@ -1,11 +1,11 @@
 include("../src/iPEPS.jl")
 
-Lx = 2
-Ly = 2
+Lx = 4
+Ly = 4
 @load "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 2
-params = (J = 1.0, h = 0.0)
+D = 3
+params = (J1 = 1.0, J2 = 0.7, h = 0.0)
 
 @load "Heisenberg/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
@@ -36,5 +36,4 @@ save("Heisenberg/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).png",fig)
 save("Heisenberg/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).pdf",fig)
 
 data["E"]
-# Sz
-
+# Sx

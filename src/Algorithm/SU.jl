@@ -9,9 +9,12 @@ function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
         tol = 0.0
         ϵ = 0.0
         for i in 1:algo.N
-            ϵ,tol,E′,localto = _SUupdate!(ψ,H,algo)
+            ϵ,tol,E′,localto = _SUupdate!(ψ,H,algo;seed = i)
             ΔE,E = E′ - E, E′
             merge!(tmpto,localto)
+
+            # @timeit tmpto "GC" manualGC()
+
             tol < τ * algo.tol && break
             if i == algo.N
                 println("SimpleUpdate update not converged!")
@@ -22,6 +25,7 @@ function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
                 # print("\n")
             end
         end
+        @timeit to "GC" manualGC()
         merge!(to,tmpto)
         show(to;title = "Simple Update\n -> $(τ)")
         println("\nE = $(E), ΔE/|E| = $(ΔE / abs(E)), TruncErr = $(ϵ), λErr = $(tol)")
@@ -31,8 +35,8 @@ end
 
 function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP, algo::SimpleUpdate)
     to = TimerOutput()
-    Γu, (λur, λuu, λud, λul) = ψ[j]
-    Γd, (λdr, λdu, λdd, λdl) = ψ[i]
+    Γu, λur, λuu, λud, λul = ψ[j]
+    Γd, λdr, λdu, λdd, λdl = ψ[i]
     @assert λud == λdu
 
     @timeit to "λ-Γ contract" Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
@@ -50,19 +54,19 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP,
     # Γu′ = permute(Γu′,(1,2,3),(5,4))
     # Γd′ = permute(Γd′,(2,1,3),(4,5))
     Λ = normalize(Λ)
-    ϵ_λ = diff(ψ[i][2][2],Λ)
+    ϵ_λ = diff(ψ[i][3],Λ)
 
     replace!(ψ,Λ,i,UP())
     replace!(ψ,invu(Γu′,λur, λuu, λul),j)
     replace!(ψ,invd(Γd′,λdr, λdd, λdl),i)
 
-    return ψ, ϵ_trunc, ϵ_λ, ΔE, to
+    return ψ, ϵ_trunc^2, ϵ_λ, ΔE, to
 end
 
 function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIGHT, algo::SimpleUpdate)
     to = TimerOutput()
-    Γl, (λlr, λlu, λld, λll) = ψ[i]
-    Γr, (λrr, λru, λrd, λrl) = ψ[j]
+    Γl, λlr, λlu, λld, λll = ψ[i]
+    Γr, λrr, λru, λrd, λrl = ψ[j]
     @assert λlr == λrl
 
     @timeit to "λ-Γ contract" Γl′ = λΓcontract(Γl, sqrt(λlr), λlu, λld, λll)
@@ -83,27 +87,30 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIG
     # Γr′ = permute(Γr′,(1,2,3),(4,5))
     Λ = normalize(Λ)
 
-    ϵ_λ = diff(ψ[i][2][1], Λ)
+    ϵ_λ = diff(ψ[i][2], Λ)
     
     replace!(ψ,Λ,i,RIGHT())
     replace!(ψ,invl(Γl′,λlu, λll, λld),i)
     replace!(ψ,invr(Γr′,λrr, λru, λrd),j)
 
-    return ψ, ϵ_trunc, ϵ_λ, ΔE, to
+    return ψ, ϵ_trunc^2, ϵ_λ, ΔE, to
 end
+
+_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::LEFT, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,RIGHT(),algo)
+_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::DOWN, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,UP(),algo)
 
 function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, algo::SimpleUpdate)
     to = TimerOutput()
     eO = exp(- algo.τ * O)
     Γ = ψ[i][1]
     @timeit to "action" @tensor Γ′[-1,-2,-3;-4,-5] ≔ Γ[-1,-2,1,-4,-5] * eO[-3,1]
-    @timeit to "measure" ΔE = real(λΓcontract(ψ[i][1],ψ[i][2]...) |> x -> _inner(x,O,x))
+    @timeit to "measure" ΔE = real(λΓcontract(ψ[i]...) |> x -> _inner(x,O,x))
     replace!(ψ,normalize(Γ′),i)
     return ψ, 0.0, 0.0, ΔE, to
 end
 
 
-function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate)
+function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;seed::Int64 = 1)
     ϵ_trunc_tol = 0.0
     ϵ_λ_tol = 0.0
     E = 0.0
@@ -112,6 +119,7 @@ function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate)
     
     for (((i,vi),(j,vj)),Heff) in H.H2
         setdiff!(sites1,[i,j])
+
         @timeit to "build Heff" begin
             if i in keys(H.H1)
                 H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
@@ -125,14 +133,19 @@ function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate)
         end
 
         norm(Heff) < 1e-12 && continue
-        
         if haskey(ψ.nn2d,((i,vi),(j,vj)))
             @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
             merge!(to,localto;tree_point = ["update2!"])
         else
             # swap int
-            ϵ_trunc = 0.0
-            ϵ_λ = 0.0
+            paths = H.nnnpath[((i,vi),(j,vj))]
+            path = paths[mod(seed,length(paths)) + 1]
+            # path = paths[1]
+            @timeit to "swap!" _swap!(ψ,path[1:end-1],algo.trunc)
+            (i′,vi′),(j′,vj′) = path[end-1:end]
+            @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i′,j′,ψ.nn2d[(i′,vi′),(j′,vj′)], algo)
+            @timeit to "swap!" _swap!(ψ,reverse(path[1:end-1]),algo.trunc)
+            merge!(to,localto;tree_point = ["update2!"])
         end
 
         ϵ_trunc_tol += ϵ_trunc
