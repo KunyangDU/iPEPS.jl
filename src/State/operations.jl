@@ -1,9 +1,10 @@
-_inner(tmp′::AbstractTensorMap{T,S,5,3},tmp::AbstractTensorMap{T,S,5,3}) where {T,S} = @tensor tmp′[1,2,3,4,5,6,7,8] * tmp'[6,7,8,1,2,3,4,5]
-_inner(tmp′::AbstractTensorMap{T,S,6,3},tmp::AbstractTensorMap{T,S,5,3}) where {T,S} = convert(Array,@tensor s[-1] ≔ tmp′[1,2,3,4,5,-1,6,7,8] * tmp'[6,7,8,1,2,3,4,5])
+# _inner(tmp′::AbstractTensorMap{T,S,5,3},tmp::AbstractTensorMap{T,S,5,3}) where {T,S} = @tensor tmp′[1,2,3,4,5,6,7,8] * tmp'[6,7,8,1,2,3,4,5]
+# _inner(tmp′::AbstractTensorMap{T,S,6,3},tmp::AbstractTensorMap{T,S,5,3}) where {T,S} = convert(Array,@tensor s[-1] ≔ tmp′[1,2,3,4,5,-1,6,7,8] * tmp'[6,7,8,1,2,3,4,5])
+_inner(tmp′::AbstractTensorMap{T,S,3,1},tmp::AbstractTensorMap{T,S,3,1}) where {T,S} = @tensor tmp′[1,3,4,2] * tmp'[2,1,3,4]
 
-function _inner(Γ₁::AbstractTensorMap, O::AbstractTensorMap{T,S,2,1}, Γ₂::AbstractTensorMap) where {T,S}
-    return convert(Array,@tensor tmp[-1] ≔ Γ₁[1,2,3,5,6] * O[4,-1,3] * Γ₂'[5,6,1,2,4])
-end
+# function _inner(Γ₁::AbstractTensorMap, O::AbstractTensorMap{T,S,2,1}, Γ₂::AbstractTensorMap) where {T,S}
+#     return convert(Array,@tensor tmp[-1] ≔ Γ₁[1,2,3,5,6] * O[4,-1,3] * Γ₂'[5,6,1,2,4])
+# end
 function _inner(Γ₁::AbstractTensorMap, O::AbstractTensorMap{T,S,1,1}, Γ₂::AbstractTensorMap) where {T,S}
     return @tensor Γ₁[1,2,3,5,6] * O[4,3] * Γ₂'[5,6,1,2,4]
 end
