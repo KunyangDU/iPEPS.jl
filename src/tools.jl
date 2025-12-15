@@ -52,3 +52,6 @@ function pad(S::AbstractTensorMap, new_space::VectorSpace)
 end
 
 manualGC() = GC.gc()
+
+_fullize(A::Vector) = unique(vcat(A,_nn_reverse.(A)))
+

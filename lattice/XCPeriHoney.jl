@@ -7,8 +7,8 @@ Ly = 1
 
 Latt = XCPeriHoneycomb(Lx,Ly)
 
-figsize = (height = (Ly+1)*80*sqrt(3)/3, width = (Lx + 1)*80)
-
+# figsize = (height = (Ly+1)*80*sqrt(3)/3, width = (Lx + 1)*80)
+figsize = getfigsize(Latt,40)
 fig = Figure()
 ax = Axis(fig[1,1];autolimitaspect = true,figsize...)
 

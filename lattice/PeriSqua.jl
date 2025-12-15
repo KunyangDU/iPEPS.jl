@@ -1,11 +1,11 @@
 using Random
 include("../src/iPEPS.jl")
 
-Lx = 8
-Ly = 8
+Lx = 4
+Ly = 4
 
 # Latt = PeriSqua(Lx,Ly,Tuple(shuffle(1:length(ψ))))
-Latt = PeriSqua(Lx,Ly)
+Latt = PeriSqua(Lx,Ly,(1, 4, 5, 8, 2, 3, 6, 7, 9, 12, 13, 16, 10, 11, 14, 15))
 figsize = (height = (Ly+1)*50, width = (Lx + 1)*50)
 
 fig = Figure()
@@ -27,4 +27,4 @@ save("lattice/figures/PeriSqua_$(Lx)x$(Ly).png",fig)
 
 # magLatt.lattice
 # coors = map(x -> coordinate(magLatt,x), 1:length(magLatt))
-neighbor_pbc(Latt)
+# neighbor_pbc(Latt)

@@ -1,13 +1,15 @@
+
+# aux Latt: nn2d. nntable
 mutable struct LGState{Lx,Ly} <: AbstractState
     Γ::Vector{AbstractTensorMap}
     λ::Vector{AbstractTensorMap}
-    nnsites::Tuple
+    # nnsites::Tuple
     nntable::Dict{Tuple,Tuple}
     nn2d::Dict{Tuple,AbstractDirection}
     λindex::Tuple
     pspace::ElementarySpace
     function LGState(Latt::AbstractLattice)
-        return new{size(Latt)...}(Vector{AbstractTensorMap}(),Vector{AbstractTensorMap}(),(),Dict{Tuple,Tuple}(),Dict{Tuple,AbstractDirection}(),(),ℂ^1)
+        return new{size(Latt)...}(Vector{AbstractTensorMap}(),Vector{AbstractTensorMap}(),Dict{Tuple,Tuple}(),Dict{Tuple,AbstractDirection}(),(),ℂ^1)
     end
 end
 

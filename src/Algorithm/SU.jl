@@ -96,8 +96,10 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIG
     return ψ, ϵ_trunc^2, ϵ_λ, ΔE, to
 end
 
-_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::LEFT, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,RIGHT(),algo)
-_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::DOWN, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,UP(),algo)
+# _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::LEFT, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,RIGHT(),algo)
+# _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::DOWN, algo::SimpleUpdate) = _SUupdate!(ψ , O,j,i,UP(),algo)
+_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::LEFT, algo::SimpleUpdate) = _SUupdate!(ψ , _swap_gate(ψ.pspace) * O * _swap_gate(ψ.pspace),j,i,RIGHT(),algo)
+_SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::DOWN, algo::SimpleUpdate) = _SUupdate!(ψ , _swap_gate(ψ.pspace) * O * _swap_gate(ψ.pspace),j,i,UP(),algo)
 
 function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, algo::SimpleUpdate)
     to = TimerOutput()
@@ -142,7 +144,7 @@ function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;seed::Int64 
             path = paths[mod(seed,length(paths)) + 1]
             # path = paths[1]
             @timeit to "swap!" _swap!(ψ,path[1:end-1],algo.trunc)
-            (i′,vi′),(j′,vj′) = path[end-1:end]
+            (j′,vj′),(i′,vi′) = path[end-1:end]
             @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i′,j′,ψ.nn2d[(i′,vi′),(j′,vj′)], algo)
             @timeit to "swap!" _swap!(ψ,reverse(path[1:end-1]),algo.trunc)
             merge!(to,localto;tree_point = ["update2!"])

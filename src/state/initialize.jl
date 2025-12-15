@@ -1,9 +1,10 @@
 
+# aux Latt: nbs 
 function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace))
     nbs = ineighbor(Latt)
     ψ.Γ = [rand(ComplexF64, aspace ⊗ aspace ⊗ pspace, aspace ⊗ aspace) for _ in 1:length(Latt)]
     ψ.λ = [isometry(ComplexF64, aspace, aspace) for _ in 1:length(nbs)]
-    ψ.nnsites = Tuple(neighborsites_pbc(Latt))
+    # ψ.nnsites = Tuple(neighborsites_pbc(Latt))
     ψ.pspace = pspace
     ψ.nntable,ψ.nn2d = build_direction_table(Latt)
 

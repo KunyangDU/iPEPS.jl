@@ -22,7 +22,7 @@ function measure(ψ::LGState,H::Hamiltonian,trunc::TruncationScheme = notrunc())
             for path in paths
             # path = paths[1]
                 _swap!(ψ,path[1:end-1],trunc)
-                (i′,vi′),(j′,vj′) = path[end-1:end]
+                (j′,vj′),(i′,vi′) = path[end-1:end]
                 E += _calObs2(ψ,J,(i′,vi′),(j′,vj′)) / length(paths)
                 _swap!(ψ,reverse(path[1:end-1]),trunc)
             end

@@ -1,5 +1,5 @@
-function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySpace)
-    nbs = ineighbor(Latt)
+function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySpace,nbs::Vector = ineighbor(Latt))
+
     # nnnnb = filter(x -> x ∉ nbs, collect(keys(H.H2)))
     # osites = [(i,[0,0]) for i in 1:length(Latt)]
     # its = map(x -> map(z -> z[2], filter(y -> y[1] == x,nnnnb)),osites)

@@ -1,17 +1,18 @@
 using TensorKit,Random
 include("../src/iPEPS.jl")
 
-Lx = 4
-Ly = 4
+Lx = 2
+Ly = 2
 Latt = PeriSqua(Lx,Ly)
-@save "Heisenberg/data/Latt_$(Lx)x$(Ly).jld2" Latt
+@save "Square/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-params = (J1 = 1.0, J2 = 0.7, h = 0.0)
+params = (J1 = 0.0, J2 = 0.1, h = 0.0)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+    # addIntr2!(H, ((2,[0,0]),(1,[0,0])), LocalSpace.SJ(params.J1 * diagm(ones(3))))
     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
     addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
-    addIntr1!(H,1,LocalSpace.Sh(-[0,0,100]))
+    addIntr1!(H,1,LocalSpace.Sh(-[0,0,10000]))
     initialize!(Latt,H,ℂ^2)
 end
 
@@ -32,14 +33,14 @@ sualgo = SimpleUpdate(
 )
 SU!(ψ,H,sualgo)
 
-H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
-    addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
-    initialize!(Latt,H,ℂ^2)
-end
+# H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+#     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
+#     addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
+#     initialize!(Latt,H,ℂ^2)
+# end
 
-sualgo.τs = [0.01,0.001]
-SU!(ψ,H,sualgo)
+# sualgo.τs = [0.01,0.001]
+# SU!(ψ,H,sualgo)
 
 
 O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
@@ -58,7 +59,7 @@ data = Dict(
     "E" => measure(ψ,H,sualgo.trunc),
 )
 
-@save "Heisenberg/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
-@save "Heisenberg/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
+@save "Square/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
+@save "Square/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
 
 data["E"]

@@ -35,6 +35,7 @@ include("lattice/operations.jl")
 include("lattice/plot.jl")
 include("lattice/geometry.jl")
 include("lattice/tree.jl")
+include("lattice/mapping.jl")
 
 include("LocalSpace/spin.jl")
 

@@ -2,8 +2,8 @@
 include("../src/iPEPS.jl")
 
 
-Lx = 4
-Ly = 4
+Lx = 2
+Ly = 2
 
 Latt = XCPeriTria(Lx,Ly)
 

@@ -1,3 +1,4 @@
+# nnnpath: physics Lattice
 mutable struct Hamiltonian <: AbstractOperator
     H2::Dict{Tuple,TensorMap}
     H1::Dict{Int64,TensorMap}

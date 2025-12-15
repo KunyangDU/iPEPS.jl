@@ -23,7 +23,7 @@ function plotLatt!(ax::Axis,Latt::AbstractLattice,
     if bond
         for level in tplevel
             # NN bond 
-            for ((i, j),v) in get(kwargs,:pairs,neighbor_pbc(Latt;level = level,issort = false))
+            for ((i, j),v) in get(kwargs,:pairs,neighbor_pbc(Latt;level = level,issort = false,ordered = true))
 
                     x = map([i, j]) do i
                         coordinate(Latt, i)[1] + total_shift[1]
@@ -109,4 +109,6 @@ function arrowz!(ax::Axis3,x,y,z, s; arrowsize=0.386, color=:black, transparency
     lines!(ax,[x,x],[y+u,y+u-v5[1]], [z+v,z+v-v5[2]], color=(color,transparency),linewidth = linewidth)
     lines!(ax,[x,x],[y+u,y+u-v4[1]], [z+v,z+v-v4[2]], color=(color,transparency),linewidth = linewidth)
 end
+
+getfigsize(Latt::AbstractLattice,scale::Number = 30) = (height = (size(Latt)[2]+1)*scale*norm(Latt.unitcell.lattice_vecs[2,2]), width = (size(Latt)[1] + 1)*scale*norm(Latt.unitcell.lattice_vecs[1,1]))
 
