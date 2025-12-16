@@ -9,6 +9,7 @@ function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
         tol = 0.0
         ϵ = 0.0
         for i in 1:algo.N
+            # @show space(ψ[1][1])
             ϵ,tol,E′,localto = _SUupdate!(ψ,H,algo;seed = i)
             ΔE,E = E′ - E, E′
             merge!(tmpto,localto)
@@ -41,11 +42,14 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP,
 
     @timeit to "λ-Γ contract" Γu′ = λΓcontract(Γu, λur, λuu, sqrt(λud), λul)
     @timeit to "λ-Γ contract" Γd′ = λΓcontract(Γd, λdr, sqrt(λdu), λdd, λdl)
-
+    # @show space(Γu′)
     @timeit to "kernalize" DΓ,K,UΓ = kernalize(Γd′,Γu′,UP())
+    # @show space(K)
     @timeit to "action" C = action(K,exp(- algo.τ * O))
+    # @show space(C)
     @timeit to "measure" ΔE = real(_inner(action(K,O),K))
     @timeit to "svd" U,Λ,V,ϵ_trunc = tsvd(C,(1,2),(3,4);trunc = algo.trunc)
+    # @show space(Λ)
     @timeit to "dekernalize" Γd′ = dekernalize(DΓ,V,UP())
     @timeit to "dekernalize" Γu′ = dekernalize(UΓ,U,DOWN())
     # @timeit to "action" tmp′ = actionud(Γcontractud(Γd′,Γu′), O) |> x -> x + algo.noise * rand(space(x))
@@ -54,7 +58,8 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP,
     # Γu′ = permute(Γu′,(1,2,3),(5,4))
     # Γd′ = permute(Γd′,(2,1,3),(4,5))
     Λ = normalize(Λ)
-    ϵ_λ = diff(ψ[i][3],Λ)
+    # ϵ_λ = diff(ψ[i][3],Λ)
+    ϵ_λ = 1.0
 
     replace!(ψ,Λ,i,UP())
     replace!(ψ,invu(Γu′,λur, λuu, λul),j)
@@ -87,8 +92,8 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIG
     # Γr′ = permute(Γr′,(1,2,3),(4,5))
     Λ = normalize(Λ)
 
-    ϵ_λ = diff(ψ[i][2], Λ)
-    
+    # ϵ_λ = diff(ψ[i][2], Λ)
+    ϵ_λ = 1.0
     replace!(ψ,Λ,i,RIGHT())
     replace!(ψ,invl(Γl′,λlu, λll, λld),i)
     replace!(ψ,invr(Γr′,λrr, λru, λrd),j)

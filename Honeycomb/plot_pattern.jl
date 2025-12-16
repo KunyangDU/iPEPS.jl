@@ -4,8 +4,8 @@ Lx = 2
 Ly = 2
 @load "Honeycomb/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 2
-params = (J1 = -1.0, J3 = 0.5, h = 0.0)
+D = 3
+params = (J1 = -1.0, J3 = 0.3, h = 0.0)
 
 @load "Honeycomb/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
@@ -23,7 +23,7 @@ sitesize = 12*ones(length(Latt))
 colors = get(colorschemes[:bwr],Sz,(-1/2,1/2))
 
 for i in 1:length(Latt)
-    arrowc!(ax,coordinate(Latt,i)...,1.5 *Sx[i],1.5 *Sz[i],linewidth = 3.0,color = colors[i])
+    arrowc!(ax,coordinate(Latt,i)...,1.5 *Sy[i],1.5 *Sz[i],linewidth = 3.0,color = colors[i])
 end
 
 Colorbar(fig[1,2],colormap = :bwr,colorrange = (-1/2,1/2),label = L"S_z")

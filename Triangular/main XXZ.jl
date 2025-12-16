@@ -6,13 +6,13 @@ Ly = 3
 Latt = XCPeriTria(Lx,Ly)
 @save "Triangular/data/Latt_$(Lx)x$(Ly).jld2" Latt
 Map = XCPeriTriaMapping(Latt)
-for h in 4.5
-params = (J1 = 1.0, J2 = 0.0, h = h)
+# for h in 0.2:0.4:5.0
+params = (Jxy = 1.0, Jz = 1.68, h = 0.0)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
-    addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
+    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(diagm([params.Jxy,params.Jxy,params.Jz])))
     addIntr1!(H,1:length(Latt),params.h * LocalSpace.Sh(-[0,0,1]))
+    addIntr1!(H,1,100 * LocalSpace.Sh(-[0,0,1]))
     initialize!(Map,H,ℂ^2)
 end
 
@@ -25,7 +25,7 @@ sualgo = SimpleUpdate(
     truncdim(D) & truncbelow(1e-12),
     1e-4,
     2000,
-    [0.1,0.01,0.001],
+    [0.1,],
     0.0,
     0.0
 )
@@ -33,14 +33,14 @@ sualgo = SimpleUpdate(
 
 SU!(ψ,H,sualgo)
 
-# H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-#     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
-#     addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
-#     initialize!(Map,H,ℂ^2)
-# end
+H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(diagm([params.Jxy,params.Jxy,params.Jz])))
+    addIntr1!(H,1:length(Latt),params.h * LocalSpace.Sh(-[0,0,1]))
+    initialize!(Map,H,ℂ^2)
+end
 
-# sualgo.τs = [0.01,0.001]
-# SU!(ψ,H,sualgo)
+sualgo.τs = [0.01,0.001]
+SU!(ψ,H,sualgo)
 
 
 O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
@@ -63,4 +63,4 @@ data = Dict(
 @save "Triangular/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
 
 data["E"]
-end
+# end

@@ -1,3 +1,5 @@
+initialize!(Map::LatticeMapping, H::Hamiltonian, pspace::ElementarySpace) = initialize!(Map.hamiltonian,H,pspace,Map.nnpairs)
+
 function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySpace,nbs::Vector = ineighbor(Latt))
 
     # nnnnb = filter(x -> x ∉ nbs, collect(keys(H.H2)))

@@ -1,3 +1,4 @@
+initialize!(Map::LatticeMapping,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace)) = initialize!(Map.state,ψ,pspace,aspace)
 
 # aux Latt: nbs 
 function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace))
