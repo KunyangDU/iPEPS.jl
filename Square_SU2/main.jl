@@ -6,7 +6,7 @@ Ly = 4
 Latt = PeriSqua(Lx,Ly)
 @save "Square_SU2/data/Latt_$(Lx)x$(Ly).jld2" Latt
 Map = PeriSquaMapping(Latt)
-params = (J1 = 1.0, J2 = 0.0, h = 0.0)
+params = (J1 = 1.0, J2 = 0.7, h = 0.0)
 LocalSpace = SU₂Spin
 H = let H = Hamiltonian()
     addIntr2!(H, ineighbor(Latt), params.J1 * LocalSpace.SS)
@@ -16,9 +16,9 @@ H = let H = Hamiltonian()
 end
 
 ψ = LGState(Map)
-initialize!(Map,ψ,LocalSpace.pspace,Rep[SU₂](i => 1 for i in 0:1//2:2))
+initialize!(Map,ψ,LocalSpace.pspace,Rep[SU₂](i => 1 for i in 0:1//2:3))
 
-D = 4
+D = 6
 
 sualgo = SimpleUpdate(
     truncdim(D) & truncbelow(1e-12),

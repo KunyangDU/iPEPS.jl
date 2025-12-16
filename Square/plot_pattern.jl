@@ -5,7 +5,7 @@ Ly = 4
 @load "Square/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
 D = 3
-params = (J1 = 1.0, J2 = 0.4, h = 0.0)
+params = (J1 = 1.0, J2 = 0.7, h = 0.0)
 
 @load "Square/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 

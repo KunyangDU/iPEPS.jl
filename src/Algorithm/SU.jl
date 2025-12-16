@@ -58,8 +58,8 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::UP,
     # Γu′ = permute(Γu′,(1,2,3),(5,4))
     # Γd′ = permute(Γd′,(2,1,3),(4,5))
     Λ = normalize(Λ)
-    # ϵ_λ = diff(ψ[i][3],Λ)
-    ϵ_λ = 1.0
+    ϵ_λ = diff(ψ[i][3],Λ)
+    # ϵ_λ = 1.0
 
     replace!(ψ,Λ,i,UP())
     replace!(ψ,invu(Γu′,λur, λuu, λul),j)
@@ -92,8 +92,8 @@ function _SUupdate!(ψ::LGState, O::AbstractTensorMap, i::Int64, j::Int64, ::RIG
     # Γr′ = permute(Γr′,(1,2,3),(4,5))
     Λ = normalize(Λ)
 
-    # ϵ_λ = diff(ψ[i][2], Λ)
-    ϵ_λ = 1.0
+    ϵ_λ = diff(ψ[i][2], Λ)
+    # ϵ_λ = 1.0
     replace!(ψ,Λ,i,RIGHT())
     replace!(ψ,invl(Γl′,λlu, λll, λld),i)
     replace!(ψ,invr(Γr′,λrr, λru, λrd),j)
