@@ -4,8 +4,8 @@ Lx = 3
 Ly = 3
 @load "Triangular/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 3
-lsh = 0:0.1:5.0
+D = 5
+lsh = 4.3:0.1:4.7
 proj = [0,0,1]
 lsSp = zeros(length(lsh))
 for (i,h) in enumerate(lsh)

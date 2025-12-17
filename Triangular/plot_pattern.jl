@@ -4,9 +4,9 @@ Lx = 3
 Ly = 3
 @load "Triangular/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 3
-# params = (J1 = 1.0, J2 = 0.0, h = 5.0)
-params = (Jxy = 1.0, Jz = 1.68, h = 0.0)
+D = 5
+params = (J1 = 1.0, J2 = 0.0, h = 4.6)
+# params = (Jxy = 1.0, Jz = 1.68, h = 0.0)
 
 @load "Triangular/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 

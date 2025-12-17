@@ -6,7 +6,19 @@ Ly = 3
 Latt = XCPeriTria(Lx,Ly)
 @save "Triangular/data/Latt_$(Lx)x$(Ly).jld2" Latt
 Map = XCPeriTriaMapping(Latt)
-for h in 4.5
+
+D = 5
+
+sualgo = SimpleUpdate(
+    truncdim(D) & truncbelow(1e-12),
+    1e-4,
+    5000,
+    [0.1,0.01,0.001],
+    0.0,
+    0.0
+)
+
+for h in 4.3:0.1:4.7
 params = (J1 = 1.0, J2 = 0.0, h = h)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
@@ -18,17 +30,6 @@ end
 
 ψ = LGState(Map)
 initialize!(Map,ψ,ℂ^2)
-
-D = 3
-
-sualgo = SimpleUpdate(
-    truncdim(D) & truncbelow(1e-12),
-    1e-4,
-    2000,
-    [0.1,0.01,0.001],
-    0.0,
-    0.0
-)
 
 
 SU!(ψ,H,sualgo)

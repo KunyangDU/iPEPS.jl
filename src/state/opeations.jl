@@ -3,22 +3,13 @@ function kernalize(Γl′::AbstractTensorMap,Γr′::AbstractTensorMap,::RIGHT)
     L,LΓ = rightorth(Γl′,(1,3),(2,4,5))
     RΓ,R = leftorth(Γr′,(1,2,4),(3,5))
     R = permute(R,(1,2),(3,))
-    @tensor C[-1,-2,-3;-4] ≔ L[1,-3,-4] * R[-1,-2,1]
-
-    LΓ = permute(LΓ,(1,2),(3,4))
-    RΓ = permute(RΓ,(1,2),(3,4))
-    return LΓ,C,RΓ
+    return permute(LΓ,(1,2),(3,4)), (@tensor C[-1,-2,-3;-4] ≔ L[1,-3,-4] * R[-1,-2,1]) ,permute(RΓ,(1,2),(3,4))
 end
 
 function kernalize(Γd′::AbstractTensorMap,Γu′::AbstractTensorMap,::UP)
     D,DΓ = rightorth(Γd′,(2,3),(1,4,5))
     UΓ,U = leftorth(Γu′,(1,2,5),(3,4))
-    # U = permute(U,(1,2),(3,))
-    @tensor C[-1,-2,-3;-4] ≔ D[1,-3,-4] * U[-1,-2,1]
-
-    UΓ = permute(UΓ,(1,2),(4,3))
-    DΓ = permute(DΓ,(2,1),(3,4))
-    return DΓ,C,UΓ
+    return permute(DΓ,(2,1),(3,4)), (@tensor C[-1,-2,-3;-4] ≔ D[1,-3,-4] * U[-1,-2,1]) ,permute(UΓ,(1,2),(4,3))
 end
 
 dekernalize(A::AbstractTensorMap{T,S,2,2}, B::AbstractTensorMap, ::RIGHT) where {T,S} = @tensor C[-1,-2,-3;-4,-5] ≔ A[1,-2,-4,-5] * B[-1,-3,1]

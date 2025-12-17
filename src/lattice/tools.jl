@@ -13,6 +13,14 @@ function generate_bonds(fwd_offsets, basis_idxs=(1,1))
     end
 end
 
+function getxyzbonds(Latt::AbstractLattice;tol::Float64 = 1e-8,
+    direction::Vector = [[sqrt(3)/2,1/2],[sqrt(3)/2,-1/2],[0,1]])
+    nbs = ineighbor(Latt)
+    return map(direction) do v
+        filter(x -> abs(dot(coordinate(Latt,x[1]...) - coordinate(Latt,x[2]...),v)) < tol ,nbs)
+    end
+end
+
 
 function build_direction_table(Latt::AbstractLattice)
     nbs = neighborsites_pbc(Latt)

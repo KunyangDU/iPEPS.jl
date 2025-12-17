@@ -1,13 +1,14 @@
 include("../src/iPEPS.jl")
+dataname = "Square/data/test"
 
-Lx = 4
-Ly = 4
-@load "Square/data/Latt_$(Lx)x$(Ly).jld2" Latt
+Lx = 2
+Ly = 2
+@load "$(dataname)/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 3
-params = (J1 = 1.0, J2 = 0.7, h = 0.0)
+D = 9
+params = (J1 = 1.0, J2 = 0.0, h = 0.0)
 
-@load "Square/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
+@load "$(dataname)/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
 Sx,Sy,Sz = map(x -> map(y -> data["Obs"][y][x], 1:length(Latt)),1:3)
 

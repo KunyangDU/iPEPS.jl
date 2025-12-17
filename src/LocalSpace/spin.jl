@@ -42,6 +42,56 @@ end
 
 end
 
+module TrivialSpinOne
+using TensorKit
+function diagm(A::Pair{Int64, Vector{T}}) where T
+    L = abs(A.first) + length(A.second)
+    B = zeros(T,L,L)
+    for i in 1:length(A.second)
+        B[(A.first > 0 ? (i,abs(A.first) + i) : (abs(A.first) + i,i))...] = A.second[i]
+    end
+    return B
+end
+diagm(A::Vector) = diagm(0 => A)
+
+const pspace = ℂ^3
+const Sz = TensorMap(diagm([1,0,-1]),pspace,pspace)
+const S₊ = TensorMap(diagm(1 => sqrt(2)*[1,1]),pspace,pspace)
+const S₋ = S₊'
+const Sx = (S₊ + S₋) / 2
+const Sy = (S₊ - S₋) / 2im 
+
+const SxSx = kron(Sx,Sx)
+const SySy = kron(Sy,Sy)
+const SzSz = kron(Sz,Sz)
+const S2 = TensorMap(diagm(ones(3))*2,pspace,pspace)
+
+const Sx2 = Sx*Sx 
+const Sy2 = Sy*Sy 
+const Sz2 = Sz*Sz
+
+const Sc = (Sx + Sy + Sz) / sqrt(3)
+const Sc2 = Sc*Sc
+
+const SxSy = kron(Sx,Sy)
+const SySx = kron(Sy,Sx)
+const SySz = kron(Sy,Sz)
+const SzSy = kron(Sz,Sy)
+const SxSz = kron(Sx,Sz)
+const SzSx = kron(Sz,Sx)
+
+const Sh(h::Vector) = h[1] * Sx + h[2] * Sy + h[3] * Sz
+
+const SJ(J::Matrix) = let 
+    SSM = [
+     SxSx SxSy SxSz;
+     SySx SySy SySz;
+     SzSx SzSy SzSz
+    ]
+     return sum(SSM .* J)
+end
+end
+
 
 module U₁Spin
 

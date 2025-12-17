@@ -1,45 +1,46 @@
 using TensorKit,Random
 include("../src/iPEPS.jl")
-
-Lx = 4
-Ly = 4
+dataname = "Square/data/test"
+Lx = 2
+Ly = 2
 Latt = PeriSqua(Lx,Ly)
-@save "Square/data/Latt_$(Lx)x$(Ly).jld2" Latt
+@save "$(dataname)/Latt_$(Lx)x$(Ly).jld2" Latt
 Map = PeriSquaMapping(Latt)
-params = (J1 = 1.0, J2 = 0.7, h = 0.0)
+
+D = 9
+
+sualgo = SimpleUpdate(
+    truncdim(D) & truncbelow(1e-12),
+    1e-5,
+    2000,
+    [0.1,],
+    0.0,
+    0.0
+)
+
+# for h in 4.4:0.2:4.6
+params = (J1 = 1.0, J2 = 0.0, h = 0.0)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
     addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
-    addIntr1!(H,1,LocalSpace.Sh(-[0,0,10000]))
+    addIntr1!(H,1:length(Latt),- params.h * LocalSpace.Sh([0,0,1]))
     initialize!(Map,H,ℂ^2)
 end
 
 ψ = LGState(Map)
 initialize!(Map,ψ,ℂ^2)
 
-
-D = 3
-
-sualgo = SimpleUpdate(
-    truncdim(D) & truncbelow(1e-12),
-    1e-4,
-    1000,
-    [0.1,],
-    0.0,
-    0.0
-)
-
 SU!(ψ,H,sualgo)
 
-H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
-    addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
-    initialize!(Map,H,ℂ^2)
-end
+# H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+#     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
+#     addIntr2!(H, ineighbor(Latt;level = 2), LocalSpace.SJ(params.J2 * diagm(ones(3))))
+#     initialize!(Map,H,ℂ^2)
+# end
 
-sualgo.τs = [0.01,0.001]
-SU!(ψ,H,sualgo)
+# sualgo.τs = [0.01,0.001]
+# SU!(ψ,H,sualgo)
 
 
 O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
@@ -58,7 +59,8 @@ data = Dict(
     "E" => measure(ψ,H,sualgo.trunc),
 )
 
-@save "Square/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
-@save "Square/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
+@save "$(dataname)/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
+@save "$(dataname)/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
 
 data["E"]
+# end

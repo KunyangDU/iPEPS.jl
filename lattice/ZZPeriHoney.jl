@@ -1,7 +1,7 @@
 
 include("../src/iPEPS.jl")
 
-Lx = 1
+Lx = 3
 Ly = 1
 Latt = ZZPeriHoneycomb(Lx,Ly)
 figsize = getfigsize(Latt)
@@ -21,7 +21,3 @@ save("lattice/figures/ZZPeriHoneycomb_$(Lx)x$(Ly).pdf",fig)
 save("lattice/figures/ZZPeriHoneycomb_$(Lx)x$(Ly).png",fig)
 
 
-# ineighbor(Latt;level = 3)
-# A = [coordinate(Latt,i) for i in 1:length(Latt)]
-
-# sort
