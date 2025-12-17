@@ -5,7 +5,8 @@ Lx = 4
 Ly = 4
 
 # Latt = PeriSqua(Lx,Ly,Tuple(shuffle(1:length(ψ))))
-Latt = PeriSqua(Lx,Ly,(1, 4, 5, 8, 2, 3, 6, 7, 9, 12, 13, 16, 10, 11, 14, 15))
+# Latt = PeriSqua(Lx,Ly,(1, 4, 5, 8, 2, 3, 6, 7, 9, 12, 13, 16, 10, 11, 14, 15))
+Latt = PeriSqua(Lx,Ly)
 figsize = (height = (Ly+1)*50, width = (Lx + 1)*50)
 
 fig = Figure()
@@ -13,6 +14,7 @@ ax = Axis(fig[1,1];autolimitaspect = true,figsize...)
 
 # latticescatter!(ax,Latt)
 plotLatt!(ax,Latt;site = true,tplevel = (1,))
+
 resize_to_layout!(fig)
 display(fig)
 

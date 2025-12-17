@@ -2,6 +2,7 @@ using LatticeUtilities
 using JLD2,TimerOutputs
 using CairoMakie,LaTeXStrings,ColorSchemes
 using TensorKit
+import LinearAlgebra: BLAS 
 
 include("abstract type.jl")
 

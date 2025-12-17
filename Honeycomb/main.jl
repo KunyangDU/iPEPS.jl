@@ -6,39 +6,39 @@ Ly = 2
 Latt = ZZPeriHoneycomb(Lx,Ly)
 @save "Honeycomb/data/Latt_$(Lx)x$(Ly).jld2" Latt
 Map = ZZPeriHoneycombMapping(Latt)
-params = (J1 = -1.0, J3 = 0.3, h = 0.0)
+params = (J1 = -1.0, J3 = 0.26, h = 0.0)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
     addIntr2!(H, ineighbor(Latt;level = 3), LocalSpace.SJ(params.J3 * diagm(ones(3))))
-    # addIntr1!(H,1,LocalSpace.Sh(-[0,0,100]))
-    initialize!(Map,H,ℂ^2)
+    addIntr1!(H, 1:length(Latt), - params.h * LocalSpace.Sh([0,0,1]))
+    @time initialize!(Map,H,ℂ^2)
 end
 
 ψ = LGState(Map)
 initialize!(Map,ψ,ℂ^2)
-
-D = 3
+H.partition
+D = 4
 
 sualgo = SimpleUpdate(
     truncdim(D) & truncbelow(1e-12),
     1e-4,
     1000,
-    [0.1,],
+    [1,0.1,0.01,0.001],
     0.0,
     0.0
 )
 
 SU!(ψ,H,sualgo)
 
-H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
-    addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
-    addIntr2!(H, ineighbor(Latt;level = 3), LocalSpace.SJ(params.J3 * diagm(ones(3))))
-    initialize!(Map,H,ℂ^2)
-end
+# H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
+#     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
+#     addIntr2!(H, ineighbor(Latt;level = 3), LocalSpace.SJ(params.J3 * diagm(ones(3))))
+#     initialize!(Map,H,ℂ^2)
+# end
 
-sualgo.τs = [0.01,0.001]
-SU!(ψ,H,sualgo)
+# sualgo.τs = [0.01,0.001]
+# SU!(ψ,H,sualgo)
 
 
 O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf

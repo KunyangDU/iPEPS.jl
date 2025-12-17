@@ -21,14 +21,14 @@ function SU!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;
                 println("SimpleUpdate update not converged!")
             end
             if mod(i,showperstep) == 0
-                show(tmpto;title = "$(i)/$(algo.N)\nτ = $(τ)")
+                show(tmpto;title = "τ = $(τ) - $(i)/$(algo.N)")
                 println("\nE = $(E), ΔE/|E| = $(ΔE / abs(E)), TruncErr = $(ϵ), λErr = $(tol)")
                 # print("\n")
             end
         end
         @timeit to "GC" manualGC()
         merge!(to,tmpto)
-        show(to;title = "Simple Update\n -> $(τ)")
+        show(to;title = "Simple Update")
         println("\nE = $(E), ΔE/|E| = $(ΔE / abs(E)), TruncErr = $(ϵ), λErr = $(tol)")
     end
 end
@@ -110,41 +110,99 @@ function _SUupdate!(ψ::LGState, H::Hamiltonian, algo::SimpleUpdate;seed::Int64 
     E = 0.0
     sites1 = collect(keys(H.H1))
     to = TimerOutput()
-    
-    for (((i,vi),(j,vj)),Heff) in shuffle(collect(H.H2))
-        setdiff!(sites1,[i,j])
 
-        @timeit to "build Heff" begin
-            if i in keys(H.H1)
-                H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
-                Heff += H1
+    Nthr = get_num_threads_julia()
+    if Nthr > 1
+        for items in shuffle(H.partition)
+            n_blas = min(max(1, div(Nthr, length(items))), 8)
+            BLAS.set_num_threads(n_blas)
+
+            thread_buffers = [[TimerOutput(),0.0,0.0,0.0,[]] for _ in 1:Nthr]
+
+            Threads.@threads for ((i,vi),(j,vj)) in items
+                tid = Threads.threadid()
+                thrto = thread_buffers[tid][1]
+                Heff = H.H2[((i,vi),(j,vj))]
+
+                @timeit thrto "build Heff" begin
+                    if i in keys(H.H1)
+                        H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
+                        Heff += H1
+                    end
+
+                    if j in keys(H.H1)
+                        H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
+                        Heff += H1
+                    end
+                end
+
+                norm(Heff) < 1e-12 && continue
+                if haskey(ψ.nn2d,((i,vi),(j,vj)))
+                    @timeit thrto "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
+                    merge!(thrto,localto;tree_point = ["update2!"])
+                else
+                    # swap int
+                    paths = H.nnnpath[((i,vi),(j,vj))]
+                    path = paths[mod(seed,length(paths)) + 1]
+                    # path = paths[1]
+                    @timeit thrto "swap!" _swap!(ψ,path[1:end-1],algo.trunc)
+                    (j′,vj′),(i′,vi′) = path[end-1:end]
+                    @timeit thrto "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i′,j′,ψ.nn2d[(i′,vi′),(j′,vj′)], algo)
+                    @timeit thrto "swap!" _swap!(ψ,reverse(path[1:end-1]),algo.trunc)
+                    merge!(thrto,localto;tree_point = ["update2!"])
+                end
+
+                thread_buffers[tid][2] += ϵ_trunc
+                thread_buffers[tid][3] += ϵ_λ
+                thread_buffers[tid][4] += ΔE
+                thread_buffers[tid][5] = [i,j]
+                # merge!()
             end
-
-            if j in keys(H.H1)
-                H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
-                Heff += H1
+            for bf in thread_buffers
+                merge!(to,bf[1])
+                ϵ_trunc_tol += bf[2]
+                ϵ_λ_tol += bf[3]
+                E += bf[4]
+                setdiff!(sites1,bf[5])
             end
         end
 
-        norm(Heff) < 1e-12 && continue
-        if haskey(ψ.nn2d,((i,vi),(j,vj)))
-            @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
-            merge!(to,localto;tree_point = ["update2!"])
-        else
-            # swap int
-            paths = H.nnnpath[((i,vi),(j,vj))]
-            path = paths[mod(seed,length(paths)) + 1]
-            # path = paths[1]
-            @timeit to "swap!" _swap!(ψ,path[1:end-1],algo.trunc)
-            (j′,vj′),(i′,vi′) = path[end-1:end]
-            @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i′,j′,ψ.nn2d[(i′,vi′),(j′,vj′)], algo)
-            @timeit to "swap!" _swap!(ψ,reverse(path[1:end-1]),algo.trunc)
-            merge!(to,localto;tree_point = ["update2!"])
-        end
+    else
+        for (((i,vi),(j,vj)),Heff) in shuffle(collect(H.H2))
+            setdiff!(sites1,[i,j])
 
-        ϵ_trunc_tol += ϵ_trunc
-        ϵ_λ_tol += ϵ_λ
-        E += ΔE
+            @timeit to "build Heff" begin
+                if i in keys(H.H1)
+                    H1 = O1_2_O2_l(H.H1[i],H.pspace) / H.coordination[i]
+                    Heff += H1
+                end
+
+                if j in keys(H.H1)
+                    H1 = O1_2_O2_r(H.H1[j],H.pspace) / H.coordination[j]
+                    Heff += H1
+                end
+            end
+
+            norm(Heff) < 1e-12 && continue
+            if haskey(ψ.nn2d,((i,vi),(j,vj)))
+                @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i,j,ψ.nn2d[(i,vi),(j,vj)], algo)
+                merge!(to,localto;tree_point = ["update2!"])
+            else
+                # swap int
+                paths = H.nnnpath[((i,vi),(j,vj))]
+                path = paths[mod(seed,length(paths)) + 1]
+                # path = paths[1]
+                @timeit to "swap!" _swap!(ψ,path[1:end-1],algo.trunc)
+                (j′,vj′),(i′,vi′) = path[end-1:end]
+                @timeit to "update2!" _,ϵ_trunc,ϵ_λ,ΔE,localto = _SUupdate!(ψ,Heff,i′,j′,ψ.nn2d[(i′,vi′),(j′,vj′)], algo)
+                @timeit to "swap!" _swap!(ψ,reverse(path[1:end-1]),algo.trunc)
+                merge!(to,localto;tree_point = ["update2!"])
+            end
+
+            ϵ_trunc_tol += ϵ_trunc
+            ϵ_λ_tol += ϵ_λ
+            E += ΔE
+        end
     end
 
     for i in sites1

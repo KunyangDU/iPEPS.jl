@@ -18,8 +18,8 @@ sualgo = SimpleUpdate(
     0.0
 )
 
-for h in 4.3:0.1:4.7
-params = (J1 = 1.0, J2 = 0.0, h = h)
+# for h in 4.3:0.1:4.7
+params = (J1 = 1.0, J2 = 0.0, h = 0.0)
 
 H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
@@ -31,8 +31,8 @@ end
 ψ = LGState(Map)
 initialize!(Map,ψ,ℂ^2)
 
-
-SU!(ψ,H,sualgo)
+H.partition
+# SU!(ψ,H,sualgo)
 
 # H = let LocalSpace = TrivialSpinOneHalf,H = Hamiltonian()
 #     addIntr2!(H, ineighbor(Latt), LocalSpace.SJ(params.J1 * diagm(ones(3))))
@@ -44,24 +44,24 @@ SU!(ψ,H,sualgo)
 # SU!(ψ,H,sualgo)
 
 
-O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
-    addObs1!(obs,1:length(Latt),LocalSpace.Sx)
-    addObs1!(obs,1:length(Latt),LocalSpace.Sy)
-    addObs1!(obs,1:length(Latt),LocalSpace.Sz)
-    # addObs2!(obs,ineighbor(Latt),LocalSpace.SxSx)
-    # addObs2!(obs,ineighbor(Latt),LocalSpace.SySy)
-    # addObs2!(obs,ineighbor(Latt),LocalSpace.SzSz)
-    initialize!(Latt,obs)
-end
+# O = let obs = Observable(), LocalSpace = TrivialSpinOneHalf
+#     addObs1!(obs,1:length(Latt),LocalSpace.Sx)
+#     addObs1!(obs,1:length(Latt),LocalSpace.Sy)
+#     addObs1!(obs,1:length(Latt),LocalSpace.Sz)
+#     # addObs2!(obs,ineighbor(Latt),LocalSpace.SxSx)
+#     # addObs2!(obs,ineighbor(Latt),LocalSpace.SySy)
+#     # addObs2!(obs,ineighbor(Latt),LocalSpace.SzSz)
+#     initialize!(Latt,obs)
+# end
 
-calObs!(O,ψ)
-data = Dict(
-    "Obs" => O.values,
-    "E" => measure(ψ,H,sualgo.trunc),
-)
+# calObs!(O,ψ)
+# data = Dict(
+#     "Obs" => O.values,
+#     "E" => measure(ψ,H,sualgo.trunc),
+# )
 
-@save "Triangular/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
-@save "Triangular/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
+# @save "Triangular/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
+# @save "Triangular/data/ψ_$(Lx)x$(Ly)_$(D)_$(params).jld2" ψ
 
-data["E"]
-end
+# data["E"]
+# end

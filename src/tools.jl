@@ -124,3 +124,4 @@ manualGC() = GC.gc()
 
 _fullize(A::Vector) = unique(vcat(A,_nn_reverse.(A)))
 
+get_num_threads_julia() = Threads.nthreads()

@@ -5,8 +5,8 @@ Lx = 2
 Ly = 2
 @load "$(dataname)/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 9
-params = (J1 = 1.0, J2 = 0.0, h = 0.0)
+D = 6
+params = (J1 = 1.0, J2 = 0.62, h = 0.0)
 
 @load "$(dataname)/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
@@ -21,7 +21,7 @@ plotLatt!(ax,Latt;site = true,tplevel = (1,),sitelabel = false,
 sitesize = 12*ones(length(Latt))
 )
 
-colors = get(colorschemes[:bwr],Sz,(-1/2,1/2))
+colors = get(colorschemes[:berlin],Sz,(-1/2,1/2))
 
 for i in 1:length(Latt)
     arrowc!(ax,coordinate(Latt,i)...,1.5 *Sx[i],1.5 *Sz[i],linewidth = 3.0,color = colors[i])

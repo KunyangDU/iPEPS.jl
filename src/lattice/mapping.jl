@@ -10,7 +10,7 @@ end
 
 function ZZPeriHoneycombMapping(phyLatt::AbstractLattice)
     auxLatt = PeriSqua((2 .* size(phyLatt))...,_ZZHC_index(phyLatt))
-    return LatticeMapping(phyLatt,auxLatt,auxLatt,phyLatt,_fullize(ineighbor(auxLatt)))
+    return LatticeMapping(phyLatt,auxLatt,auxLatt,phyLatt,_fullize(ineighbor(phyLatt)))
 end
 
 function XCPeriTriaMapping(phyLatt::AbstractLattice)

@@ -14,6 +14,7 @@ ax = Axis(fig[1,1];autolimitaspect = true,figsize...)
 
 # latticescatter!(ax,Latt)
 plotLatt!(ax,Latt;site = true,tplevel = (1,))
+
 resize_to_layout!(fig)
 display(fig)
 
