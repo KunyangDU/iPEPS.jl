@@ -11,7 +11,7 @@ mutable struct LGState{Lx,Ly} <: AbstractState
     function LGState(Latt::AbstractLattice)
         return new{size(Latt)...}(Vector{AbstractTensorMap}(),Vector{AbstractTensorMap}(),Dict{Tuple,Tuple}(),Dict{Tuple,AbstractDirection}(),(),ℂ^1)
     end
-    LGState(Map::LatticeMapping) = LGState(Map.state)
+    LGState(Map::LatticeMapping) = LGState(Map.auxLatt)
 end
 
 Base.length(::LGState{Lx, Ly}) where {Lx,Ly} = Lx*Ly

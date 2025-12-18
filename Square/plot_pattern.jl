@@ -6,7 +6,7 @@ Ly = 2
 @load "$(dataname)/Latt_$(Lx)x$(Ly).jld2" Latt
 
 D = 6
-params = (J1 = 1.0, J2 = 0.62, h = 0.0)
+params = (J1 = 1.0, J2 = 0.0, h = 0.0)
 
 @load "$(dataname)/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 

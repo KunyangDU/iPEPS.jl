@@ -8,6 +8,7 @@ include("abstract type.jl")
 
 include("lattice/mapping.jl")
 include("control/direction.jl")
+include("control/scheme.jl")
 include("control/algorithm.jl")
 include("state/LG.jl")
 include("operator/hamiltonian.jl")
@@ -28,6 +29,9 @@ include("observable/initialize.jl")
 include("observable/operations.jl")
 
 include("algorithm/SU.jl")
+include("algorithm/Full SU.jl")
+include("algorithm/Fast SU.jl")
+include("algorithm/Dynamic SU.jl")
 include("algorithm/contract.jl")
 
 include("lattice/methods.jl")

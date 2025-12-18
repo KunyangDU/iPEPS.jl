@@ -1,4 +1,4 @@
-initialize!(Map::LatticeMapping,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace)) = initialize!(Map.state,ψ,pspace,aspace)
+initialize!(Map::LatticeMapping,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace)) = initialize!(Map.auxLatt,ψ,pspace,aspace)
 
 # aux Latt: nbs 
 function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,aspace::ElementarySpace = trivial(pspace))
@@ -21,6 +21,7 @@ function initialize!(Latt::AbstractLattice,ψ::LGState,pspace::ElementarySpace,a
         push!(λindex,_λindex(ψ,i,nn2λ))
     end
     ψ.λindex = Tuple(λindex)
+    _check_λ_index(ψ)
 
     return ψ
 end

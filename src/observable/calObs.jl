@@ -9,9 +9,7 @@ function calObs!(O::Observable, ψ::LGState)
     return O
 end
 
-
-
-function measure(ψ::LGState,H::Hamiltonian,trunc::TruncationScheme = notrunc())
+function measure(ψ::LGState,H::Hamiltonian,algo::SimpleUpdate)
     E = 0.0
     for ((sitei,sitej),J) in H.H2
         if haskey(ψ.nn2d,(sitei,sitej))
@@ -21,10 +19,10 @@ function measure(ψ::LGState,H::Hamiltonian,trunc::TruncationScheme = notrunc())
             paths = H.nnnpath[(sitei,sitej)]
             for path in paths
             # path = paths[1]
-                _swap!(ψ,path[1:end-1],trunc)
+                _swap!(ψ,path[1:end-1],algo)
                 (j′,vj′),(i′,vi′) = path[end-1:end]
                 E += _calObs2(ψ,J,(i′,vi′),(j′,vj′)) / length(paths)
-                _swap!(ψ,reverse(path[1:end-1]),trunc)
+                _swap!(ψ,reverse(path[1:end-1]),algo)
             end
         end
     end
@@ -33,6 +31,8 @@ function measure(ψ::LGState,H::Hamiltonian,trunc::TruncationScheme = notrunc())
     end
     return E
 end
+
+measure(ψ::LGState,H::Hamiltonian,trunc::TruncationScheme) = measure(ψ,H,SimpleUpdate(trunc))
 
 function _calObs2(ψ::LGState, Os::Vector, i::Int64, j::Int64, ::RIGHT)
     Γl, λlr, λlu, λld, λll = ψ[i]
@@ -58,7 +58,6 @@ end
 
 _calObs2(ψ::LGState, Os::Vector, i::Int64, j::Int64, ::LEFT) = _calObs2(ψ,Os,j,i,RIGHT())
 _calObs2(ψ::LGState, Os::Vector, i::Int64, j::Int64, ::DOWN) = _calObs2(ψ,Os,j,i,UP())
-
 
 _calObs2(ψ::LGState,O::AbstractTensorMap, sitei::Tuple, sitej::Tuple) = _calObs2(ψ,[O,],sitei[1],sitej[1],ψ.nn2d[(sitei,sitej)])[1]
 _calObs1(ψ::LGState,O::AbstractTensorMap, i::Int64) = _calObs1(ψ,[O,],i)[1]

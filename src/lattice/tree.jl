@@ -60,9 +60,9 @@ end
 
 isinside(A::Tuple{Int64, Vector{Int64}}, root::LatticeTreeNode) = A  ∈ map(x -> x.A,PreOrderDFS(root))
 
-function findpath(Latt::AbstractLattice, initial::Tuple, target::Tuple, N::Int64 = 4)
+function findpath(Latt::AbstractLattice, initial::Tuple, target::Tuple, banlist::Vector = [], N::Int64 = 5)
     root = LatticeTreeNode(initial)
-    buildtree!(root,neighborsites_pbc(Latt),initial,target,N)
+    buildtree!(root,neighborsites_pbc(Latt;banlist = banlist),initial,target,N)
     path = Vector[]
     for l in Leaves(root)
         if l.A == target
@@ -77,7 +77,7 @@ function findpath(Latt::AbstractLattice, initial::Tuple, target::Tuple, N::Int64
     return Tuple.(path)
 end
 
-function buildtree!(root::LatticeTreeNode, nbsites::Vector, initial::Tuple, target::Tuple, N::Int64 = 4)
+function buildtree!(root::LatticeTreeNode, nbsites::Vector, initial::Tuple, target::Tuple, N::Int64 = 5)
     totalsites = [initial,]
 
     leaves = collect(Leaves(root))
@@ -100,11 +100,11 @@ function buildtree!(root::LatticeTreeNode, nbsites::Vector, initial::Tuple, targ
 end
 
 
-function findpath(Latt::AbstractLattice, initial::Tuple, targets::Vector, N::Int64 = 4)
+function findpath(Latt::AbstractLattice, initial::Tuple, targets::Vector, banlist::Vector = [], N::Int64 = 5)
     root = LatticeTreeNode(initial)
     leaves = collect(Leaves(root))
     totalsites = [initial,]
-    nbsites = neighborsites_pbc(Latt)
+    nbsites = neighborsites_pbc(Latt;banlist = banlist)
     tgs = deepcopy(targets)
     while !isempty(tgs)
         childrens = LatticeTreeNode[]

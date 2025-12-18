@@ -4,8 +4,8 @@ Lx = 3
 Ly = 3
 @load "Triangular/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
-D = 5
-params = (J1 = 1.0, J2 = 0.0, h = 4.6)
+D = 7
+params = (J1 = 1.0, J2 = 0.1, h = 0.0)
 # params = (Jxy = 1.0, Jz = 1.68, h = 0.0)
 
 @load "Triangular/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
@@ -35,5 +35,6 @@ display(fig)
 save("Triangular/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).png",fig)
 save("Triangular/figures/pattern_$(Lx)x$(Ly)_$(D)_$(params).pdf",fig)
 
-data["E"]
-sum(Sz) / length(Latt)
+@show data["E"]
+# dot([Sx[1],Sy[1],Sz[1]],[Sx[4],Sy[4],Sz[4]])/norm([Sx[1],Sy[1],Sz[1]])/norm([Sx[4],Sy[4],Sz[4]])
+norm.(eachcol(hcat(Sx,Sy,Sz)'))

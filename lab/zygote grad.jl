@@ -1,5 +1,5 @@
 using TensorKit, Zygote, LinearAlgebra
-
+include("../src/iPEPS.jl")
 # const SS = let pspace = Rep[SU₂](1/2 => 1)
 #     AuxSpace = Rep[SU₂](1 => 1)
 #     OpL = TensorMap(ones, Float64, pspace, AuxSpace ⊗ pspace) * sqrt(3) / 2.
@@ -19,7 +19,7 @@ function loss_fn_original(T)
     # return norm(S) ^ 2
     H = TrivialSpinOneHalf.SS
     T′ = T / norm(T)
-    return -real(@tensor T′[1,2] * H[3,4,1,2] * T′'[4,3])
+    return real(@tensor T′[1,2] * H[3,4,1,2] * T′'[3,4])
 end
 
 A = normalize(rand(ComplexF64, ℂ^2 ⊗ ℂ^2))

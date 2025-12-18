@@ -1,6 +1,6 @@
-initialize!(Map::LatticeMapping, H::Hamiltonian, pspace::ElementarySpace) = initialize!(Map.hamiltonian,H,pspace,Map.nnpairs)
+initialize!(Map::LatticeMapping, H::Hamiltonian, pspace::ElementarySpace) = initialize!(Map.auxLatt,H,pspace,Map.nnpairs,Map.banbonds)
 
-function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySpace,nbs::Vector = ineighbor(Latt))
+function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySpace,nbs::Vector,banbonds::Vector)
 
     # nnnnb = filter(x -> x ∉ nbs, collect(keys(H.H2)))
     # osites = [(i,[0,0]) for i in 1:length(Latt)]
@@ -16,7 +16,7 @@ function initialize!(Latt::AbstractLattice, H::Hamiltonian, pspace::ElementarySp
         zs[nb[2][1]] += 1
         nb ∈ nbs && continue
         isnothing(H.nnnpath) && (H.nnnpath = Dict{Tuple,Tuple}())
-        H.nnnpath[nb] = Tuple(findpath(Latt,nb...))
+        H.nnnpath[nb] = Tuple(findpath(Latt,nb...,banbonds))
     end
     zs = map(x -> x == 0 ? 1 : x, zs)
     H.coordination = Tuple(zs)

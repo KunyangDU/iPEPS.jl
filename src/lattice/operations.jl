@@ -214,10 +214,13 @@ end
 # function neighborsites_pbc(Latt::AbstractLattice,i::Int64;level::Int64 = 1)
 #     return map(x -> (x[1][1] == i ? x[1][2] : x[1][1],x[2]), neighbor_pbc(Latt,i;level = level,ordered = false,issort = false))
 # end
-function neighborsites_pbc(Latt::AbstractLattice;level::Int64 = 1)
+function neighborsites_pbc(Latt::AbstractLattice;level::Int64 = 1,banlist::Vector = [])
     nbsites = [[] for i in 1:length(Latt)]
-    for ((i,j),v) in neighbor_pbc(Latt;level = level, issort = false, ordered = false)
+    nbpairs = neighbor_pbc(Latt;level = level, issort = false, ordered = false)
+    for ((i,j),v) in nbpairs
         v = collect(Int.( v ./ size(Latt)))
+        ((i,[0,0]),(j,v)) ∈ banlist && continue
+        ((j,[0,0]),(i,-v)) ∈ banlist && continue
         push!(nbsites[i], (j,v))
         push!(nbsites[j], (i,-v))
     end

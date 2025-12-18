@@ -5,7 +5,7 @@ Ly = 2
 @load "Honeycomb/data/Latt_$(Lx)x$(Ly).jld2" Latt
 
 D = 4
-params = (J1 = -1.0, J3 = 0.26, h = 0.0)
+params = (J1 = 0.0, J3 = 0.0, h = 0.0)
 
 @load "Honeycomb/data/data_$(Lx)x$(Ly)_$(D)_$(params).jld2" data
 
